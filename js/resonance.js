@@ -23,7 +23,8 @@ window.ResonanceState = {
         if (!this.canRelease()) return false;
         this.charge = 0;
         this.buffActive = true;
-        this.buffEndTime = Date.now() + this.buffDuration;
+        const duration = this.buffDuration * window.ResonatorState.getBuffDurationMultiplier() * window.FrequencyState.getBuffDurationBonus();
+        this.buffEndTime = Date.now() + duration;
         this.cooldownEndTime = this.buffEndTime + this.cooldownAfterBuff;
         return true;
     },
