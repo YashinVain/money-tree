@@ -1,0 +1,10 @@
+{
+  "out": "out",
+  "steps": [
+    { "size": [1280, 720, 1, false] },
+    { "open": "http://127.0.0.1:8934/dist/money-tree/index.html", "wait": 2000 },
+    { "js": "document.getElementById('btn-play').click();", "sleep": 1200 },
+    { "name": "state", "js": "for(let i=0;i<30;i++){const p=R.scene.treePoint();document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x,clientY:p.y,bubbles:true}));} return {coins:R.game.S.coins, v:R.VERSION};", "sleep": 800 },
+    { "shot": "dist.png" }
+  ]
+}

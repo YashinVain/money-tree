@@ -118,7 +118,9 @@
     // Полноэкранная реклама — только в логических паузах и не чаще раза в 3 мин
     SDK.showInterstitial = () => new Promise(resolve => {
         const now = Date.now();
-        if (SDK.adOpen || now - lastInterstitial < R.CFG.interstitialGap) return resolve(false);
+        // Первые 5 минут игры — без полноэкранной рекламы: пусть игрок сначала влюбится в сад
+        const played = R.game && R.game.S ? R.game.S.stats.playMs : 0;
+        if (SDK.adOpen || now - lastInterstitial < R.CFG.interstitialGap || played < 300000) return resolve(false);
         lastInterstitial = now;
         if (SDK.mock) return resolve(false);   // локально не мешаем тестированию
         SDK.adOpen = true;

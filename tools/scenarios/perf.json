@@ -1,0 +1,16 @@
+{
+  "out": "out",
+  "steps": [
+    { "size": [390, 844, 2, true] },
+    { "open": "http://127.0.0.1:8934/index.html", "wait": 1500 },
+    { "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=100; s.coins=1e12; s.helpers=[60,50,50,50,40,60]; s.hints={tap:1,upgrade:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.savedAt=Date.now(); localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();", "sleep": 1500 },
+    { "js": "document.getElementById('btn-play').click();", "sleep": 1500 },
+    { "name": "audio", "js": "R.audio.unlock(); const A=R.audio; ['tap','autoTap','buy','buyBig','deny','click','open','ready','release','buffEnd','era','freq','cometAppear','cometCatch','achievement','reward','prestige'].forEach(n=>A[n](n==='tap')); return { ctx: A.ctx ? A.ctx.state : 'none' };" },
+    { "name": "fps-normal", "js": "const t0=performance.now(); let n=0; await new Promise(r=>{ function f(){ n++; if(performance.now()-t0<3000) requestAnimationFrame(f); else r(); } requestAnimationFrame(f); }); return Math.round(n/3);" },
+    { "cpu": 4 },
+    { "name": "fps-cpu4", "js": "const t0=performance.now(); let n=0; await new Promise(r=>{ function f(){ n++; if(performance.now()-t0<3000) requestAnimationFrame(f); else r(); } requestAnimationFrame(f); }); return Math.round(n/3);" },
+    { "name": "fps-cpu4-taps", "js": "const t0=performance.now(); let n=0; const iv=setInterval(()=>{const p=R.scene.treePoint();document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x,clientY:p.y,bubbles:true}));},80); R.game.S.charge=30; R.game.S.cooldownEnd=0; R.game.release(); await new Promise(r=>{ function f(){ n++; if(performance.now()-t0<3000) requestAnimationFrame(f); else r(); } requestAnimationFrame(f); }); clearInterval(iv); return Math.round(n/3);" },
+    { "shot": "perf-buff.png" },
+    { "cpu": 1 }
+  ]
+}

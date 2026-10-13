@@ -40,13 +40,18 @@
             });
         };
         merge(fresh, data);
-        // Список помощников мог стать длиннее — дополняем нулями
-        const helpers = R.CFG.helpers.map((h, i) => Math.max(0, Math.floor(+fresh.helpers[i] || 0)));
-        fresh.helpers = helpers;
-        ['coins', 'runEarned', 'lifeEarned', 'seeds', 'seedsLife', 'charge'].forEach(k => {
-            if (!isFinite(fresh[k]) || fresh[k] < 0) fresh[k] = 0;
-        });
-        fresh.level = Math.max(0, Math.min(G.maxLevel, Math.floor(fresh.level || 0)));
+        // Любое число из сохранения проверяем: не число или меньше нуля — ставим 0
+        const num = (v) => { v = +v; return isFinite(v) && v > 0 ? v : 0; };
+        const helpers = Array.isArray(fresh.helpers) ? fresh.helpers : [];
+        fresh.helpers = R.CFG.helpers.map((h, i) => Math.floor(num(helpers[i])));
+        ['coins', 'runEarned', 'lifeEarned', 'seeds', 'seedsLife', 'charge', 'buffEnd', 'cooldownEnd', 'frenzyEnd',
+            'prestiges', 'bestLevel', 'freeChestAt', 'savedAt'].forEach(k => { fresh[k] = num(fresh[k]); });
+        Object.keys(fresh.stats).forEach(k => { fresh.stats[k] = num(fresh.stats[k]); });
+        Object.keys(fresh.boosts).forEach(k => { fresh.boosts[k] = num(fresh.boosts[k]); });
+        Object.keys(fresh.adReady).forEach(k => { fresh.adReady[k] = num(fresh.adReady[k]); });
+        Object.keys(fresh.perks).forEach(k => { fresh.perks[k] = Math.floor(num(fresh.perks[k])); });
+        fresh.level = Math.min(G.maxLevel, Math.floor(num(fresh.level)));
+        fresh.charge = Math.min(R.CFG.chargeMax, fresh.charge);
         G.S = fresh;
     };
 

@@ -227,7 +227,7 @@ svg { display: block; width: 100%; height: 100%; }
     background: linear-gradient(90deg, #ff5a5a, #ff9f43, #ffd93d, #6bdc5a, #4fc3ff, #6f7bff, #b06bff);
     transition: width 0.15s linear;
 }
-#btn-rainbow .label { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
+#btn-rainbow .label { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
 #btn-rainbow.ready {
     box-shadow: 0 5px 0 #8a4fd0, var(--shadow);
     animation: readyPulse 0.9s ease-in-out infinite;

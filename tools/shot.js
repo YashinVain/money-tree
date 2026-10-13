@@ -3,8 +3,8 @@
 //
 //   node tools/shot.js tools/scenarios/smoke.json
 //
-// Сценарий — список шагов: открыть страницу, выполнить JS, подождать,
-// сделать снимок. Снимки и ошибки консоли сохраняются в папку out сценария.
+// Сценарий — список шагов: размер экрана (size), замедление процессора (cpu),
+// открыть страницу (open), выполнить JS (js), подождать (sleep), снимок (shot). Снимки и ошибки консоли сохраняются в папку out сценария.
 
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -86,6 +86,7 @@ async function run(scenarioPath) {
                 await page.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: dpr, mobile });
                 if (mobile) await page.send('Emulation.setTouchEmulationEnabled', { enabled: true });
             }
+            if (step.cpu) await page.send('Emulation.setCPUThrottlingRate', { rate: step.cpu });
             if (step.open) {
                 await page.send('Page.navigate', { url: step.open });
                 await sleep(step.wait || 1500);

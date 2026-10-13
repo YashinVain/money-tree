@@ -266,8 +266,16 @@
         ctx.globalAlpha = alpha;
         if (fill > 0.001) {
             if (glow > 0) {
-                ctx.shadowColor = 'rgba(255,255,255,' + glow + ')';
-                ctx.shadowBlur = band * 3;
+                // Свечение — широкий полупрозрачный белый штрих позади (дешевле, чем shadowBlur)
+                ctx.save();
+                ctx.globalAlpha = alpha * 0.35 * glow;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineCap = 'round';
+                ctx.lineWidth = band * (P.RAINBOW.length + 3);
+                ctx.beginPath();
+                ctx.arc(x, y, r - band * (P.RAINBOW.length - 1) / 2, a0, a0 + (a1 - a0) * fill);
+                ctx.stroke();
+                ctx.restore();
             }
             P.RAINBOW.forEach((col, i) => {
                 ctx.strokeStyle = col;
