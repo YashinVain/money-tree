@@ -116,7 +116,7 @@ async function run(scenarioPath) {
         }
     } finally {
         if (page) {
-            fs.writeFileSync(path.join(outDir, 'console.txt'), page.logs.join('\n'));
+            if (page.logs.length) fs.writeFileSync(path.join(outDir, 'console.txt'), page.logs.join('\n'));
             const errors = page.logs.filter(l => /EXCEPTION|error/i.test(l));
             report.push('ошибок в консоли: ' + errors.length);
             errors.slice(0, 15).forEach(e => report.push('  ' + e));

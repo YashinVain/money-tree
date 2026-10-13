@@ -1,0 +1,173 @@
+{
+ "out": "../../docs/promo",
+ "steps": [
+  {
+   "size": [
+    1920,
+    1080,
+    1,
+    false
+   ]
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=68; s.bestLevel=68; s.coins=3000000; s.helpers=[30,25,18,8,0,0]; s.charge=22; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click();",
+   "sleep": 2500
+  },
+  {
+   "js": "window.tapN=(n)=>{for(let i=0;i<n;i++){const p=R.scene.treePoint();document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x+(Math.random()-0.5)*p.x*0.3,clientY:p.y+(Math.random()-0.5)*80,bubbles:true}));}}; tapN(1); document.querySelector('.tab[data-tab=tree]').click();",
+   "sleep": 400
+  },
+  {
+   "js": "tapN(3);",
+   "sleep": 150
+  },
+  {
+   "js": "tapN(2);",
+   "sleep": 150
+  },
+  {
+   "shot": "desktop-1.png"
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=84; s.bestLevel=84; s.coins=400000000; s.helpers=[45,38,30,24,10,0]; s.charge=30; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>{ R.game.release(); }, 800);",
+   "sleep": 3200
+  },
+  {
+   "js": "window.tapN=(n)=>{for(let i=0;i<n;i++){const p=R.scene.treePoint();document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x+(Math.random()-0.5)*p.x*0.3,clientY:p.y+(Math.random()-0.5)*80,bubbles:true}));}}; tapN(1); tapN(2);",
+   "sleep": 200
+  },
+  {
+   "shot": "desktop-2.png"
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=98; s.bestLevel=98; s.coins=30000000000; s.helpers=[55,48,40,32,25,8]; s.charge=12; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=helpers]').click(), 900);",
+   "sleep": 3000
+  },
+  {
+   "shot": "desktop-3.png"
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=116; s.bestLevel=116; s.coins=50000000000000; s.helpers=[70,60,52,45,38,26]; s.charge=26; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=flowers]').click(), 900);",
+   "sleep": 3000
+  },
+  {
+   "shot": "desktop-4.png"
+  },
+  {
+   "size": [
+    360,
+    640,
+    3,
+    true
+   ]
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=68; s.bestLevel=68; s.coins=3000000; s.helpers=[30,25,18,8,0,0]; s.charge=22; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click();",
+   "sleep": 2500
+  },
+  {
+   "js": "window.tapN=(n)=>{for(let i=0;i<n;i++){const p=R.scene.treePoint();document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x+(Math.random()-0.5)*p.x*0.3,clientY:p.y+(Math.random()-0.5)*80,bubbles:true}));}}; tapN(1); document.querySelector('.tab[data-tab=tree]').click();",
+   "sleep": 400
+  },
+  {
+   "js": "tapN(3);",
+   "sleep": 150
+  },
+  {
+   "js": "tapN(2);",
+   "sleep": 150
+  },
+  {
+   "shot": "mobile-1.png"
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=84; s.bestLevel=84; s.coins=400000000; s.helpers=[45,38,30,24,10,0]; s.charge=30; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>{ R.game.release(); }, 800);",
+   "sleep": 3200
+  },
+  {
+   "js": "window.tapN=(n)=>{for(let i=0;i<n;i++){const p=R.scene.treePoint();document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x+(Math.random()-0.5)*p.x*0.3,clientY:p.y+(Math.random()-0.5)*80,bubbles:true}));}}; tapN(1); tapN(2);",
+   "sleep": 200
+  },
+  {
+   "shot": "mobile-2.png"
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=98; s.bestLevel=98; s.coins=30000000000; s.helpers=[55,48,40,32,25,8]; s.charge=12; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=helpers]').click(), 900);",
+   "sleep": 3000
+  },
+  {
+   "shot": "mobile-3.png"
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=116; s.bestLevel=116; s.coins=50000000000000; s.helpers=[70,60,52,45,38,26]; s.charge=26; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=flowers]').click(), 900);",
+   "sleep": 3000
+  },
+  {
+   "shot": "mobile-4.png"
+  }
+ ]
+}

@@ -332,9 +332,9 @@
         if (G.S.boosts.incomeX2End > now) items.push(`<span class="chip"><i>${R.icon('x2')}</i>${U.fmtTime(G.S.boosts.incomeX2End - now)}</span>`);
         if (G.S.boosts.chargeX2End > now) items.push(`<span class="chip"><i>${R.icon('rainbow')}</i>${U.fmtTime(G.S.boosts.chargeX2End - now)}</span>`);
         const html = items.join('');
-        const el = $('#status');
-        if (el.innerHTML !== html) el.innerHTML = html;
+        if (html !== lastStatus) { $('#status').innerHTML = html; lastStatus = html; }
     };
+    let lastStatus = '';
 
     UI.setShownCoins = (v) => { shownCoins = v; };
 })(typeof window !== 'undefined' ? window : globalThis);
