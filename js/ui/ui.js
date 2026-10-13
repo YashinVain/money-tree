@@ -44,7 +44,7 @@
         document.documentElement.style.setProperty('--s', s.toFixed(3));
         const panelW = Math.round(U.clamp(w * 0.36, 340, 480));
         document.documentElement.style.setProperty('--panel-w', panelW + 'px');
-        const tabbar = h < 520 ? 60 : Math.round(74 * Math.min(1.1, s));
+        const tabbar = h < 520 ? 60 : Math.round(Math.max(66, 74 * Math.min(1.1, s)));
         document.documentElement.style.setProperty('--tabbar', tabbar + 'px');
         document.documentElement.style.setProperty('--sheet-h', Math.round(h * (h < 700 ? 0.52 : 0.55)) + 'px');
 

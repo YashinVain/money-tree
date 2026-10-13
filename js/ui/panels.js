@@ -111,9 +111,9 @@
                 const msFrac = ms ? (lvl - prevMs) / (ms - prevMs) : 1;
                 return `<div class="card ${lvl > 0 ? '' : 'hl'}">
                     <div class="row">
-                        <div class="pic">${UI.img('helper', h.id)}</div>
+                        <div class="pic has-lvl">${UI.img('helper', h.id)}${lvl > 0 ? `<span class="pic-lvl">${lvl}</span>` : ''}</div>
                         <div class="grow">
-                            <div class="title">${t('helper_' + h.id)}${lvl > 0 ? `<span class="lvl">${t('helper_level', { n: lvl })}</span>` : ''}</div>
+                            <div class="title">${t('helper_' + h.id)}</div>
                             <div class="desc">${lvl > 0 ? `<b class="good" data-k="rate${i}"></b>` : t('helper_desc_' + h.id)}</div>
                         </div>
                         <button class="btn col" data-a="hire:${i}" data-k="hire${i}"><span data-k="hireLabel${i}"></span><small data-k="hirePrice${i}"></small></button>

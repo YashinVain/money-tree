@@ -67,6 +67,7 @@
             when: () => G.canPrestige() && G.seedsOnPrestige() >= 1 && G.S.prestiges === 0,
             text: () => R.t('hint_prestige'),
             target: tabEl('garden'),
+            hideWhenSheet: true,
             done: () => UI.sheetOpen && UI.tab === 'garden'
         },
         {
@@ -74,6 +75,7 @@
             when: () => G.S.stats.playMs > 50000 && R.meta.giftAvailable(),
             text: () => R.t('hint_gift'),
             target: tabEl('bonus'),
+            hideWhenSheet: true,
             done: () => UI.sheetOpen && UI.tab === 'bonus'
         },
         {
@@ -81,6 +83,7 @@
             when: () => G.S.stats.playMs > 110000,
             text: () => R.t('hint_goals'),
             target: el('#btn-goals'),
+            hideWhenSheet: true,
             done: () => H.goalsOpened
         }
     ];
