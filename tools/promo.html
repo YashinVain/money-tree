@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Промо-картинки</title>
+<style>
+    html, body { margin: 0; overflow: hidden; background: #8fd3ff; }
+    canvas { display: block; }
+</style>
+</head>
+<body>
+<!-- Иконка и обложка для Яндекс Игр. Это НЕ скриншоты игры (требование 5.6),
+     а отдельные композиции из тех же рисунков. Открывать:
+     promo.html?kind=icon  или  promo.html?kind=cover&lang=ru -->
+<canvas id="c"></canvas>
+<script src="../js/core/util.js"></script>
+<script src="../js/view/paint.js"></script>
+<script src="../js/view/tree.js"></script>
+<script src="../js/view/critters.js"></script>
+<script src="../js/view/flowers.js"></script>
+<script>
+    const q = new URLSearchParams(location.search);
+    const kind = q.get('kind') || 'icon';
+    const lang = q.get('lang') || 'ru';
+    const P = R.paint, T = R.tree, C = R.critters, F = R.flowers, U = R.util;
+    const W = innerWidth, H = innerHeight, dpr = devicePixelRatio || 1;
+    const cv = document.getElementById('c');
+    cv.width = W * dpr; cv.height = H * dpr;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    const ctx = cv.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    function sky(top, bottom) {
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, top); g.addColorStop(1, bottom);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+    }
+
+    function sunburst(x, y, r, alpha) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = 'rgba(255,240,170,' + alpha + ')';
+        for (let i = 0; i < 16; i++) {
+            ctx.rotate(Math.PI / 8);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(r, -r * 0.12);
+            ctx.lineTo(r, r * 0.12);
+            ctx.fill();
+        }
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.7);
+        g.addColorStop(0, 'rgba(255,250,210,0.95)');
+        g.addColorStop(1, 'rgba(255,250,210,0)');
+        ctx.fillStyle = g;
+        P.circle(ctx, 0, 0, r * 0.7);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function hill(y, color, amp, phase) {
+        ctx.beginPath();
+        ctx.moveTo(0, H);
+        for (let x = 0; x <= W + 8; x += 8) ctx.lineTo(x, y - amp * Math.sin(x / W * Math.PI * 1.6 + phase));
+        ctx.lineTo(W, H);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    function drawTree(x, groundY, height, stage, p) {
+        const m = T.measure(stage, p);
+        const k = height / m.h;
+        ctx.save();
+        ctx.translate(x, groundY);
+        T.draw(ctx, stage, p, k);
+        ctx.restore();
+        return k;
+    }
+
+    function coinRain(n, area, seed) {
+        const rnd = P.rng(seed);
+        for (let i = 0; i < n; i++) {
+            const x = area.x + rnd() * area.w, y = area.y + rnd() * area.h;
+            P.coin(ctx, x, y, area.r * (0.7 + rnd() * 0.5), rnd());
+        }
+    }
+
+    function sparkles(n, seed, color) {
+        const rnd = P.rng(seed);
+        for (let i = 0; i < n; i++) P.sparkle(ctx, rnd() * W, rnd() * H * 0.7, 3 + rnd() * 6, color || '#ffffff');
+    }
+
+    function title(text, x, y, size) {
+        ctx.save();
+        ctx.font = '900 ' + size + 'px "Nunito", "Trebuchet MS", "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        // объёмная надпись: тень, толстый коричневый контур, золотой градиент
+        ctx.fillStyle = 'rgba(90,40,0,0.35)';
+        ctx.fillText(text, x, y + size * 0.14);
+        ctx.lineWidth = size * 0.2;
+        ctx.strokeStyle = '#8a4a00';
+        ctx.strokeText(text, x, y);
+        const g = ctx.createLinearGradient(0, y - size / 2, 0, y + size / 2);
+        g.addColorStop(0, '#fff3a0');
+        g.addColorStop(0.5, '#ffd23f');
+        g.addColorStop(1, '#f0a020');
+        ctx.fillStyle = g;
+        ctx.fillText(text, x, y);
+        ctx.restore();
+    }
+
+    if (kind === 'icon') {
+        // Иконка 512x512: Яблоня с монетками на солнечном фоне, без текста
+        sky('#7fd0ff', '#fff3c4');
+        sunburst(W / 2, H * 0.4, W * 0.75, 0.35);
+        hill(H * 0.86, '#86d07a', H * 0.04, 1);
+        hill(H * 0.92, '#5fbf4f', H * 0.03, 3);
+        drawTree(W / 2, H * 0.9, H * 0.78, 5, 0.9);
+        coinRain(7, { x: W * 0.12, y: H * 0.06, w: W * 0.76, h: H * 0.3, r: W * 0.045 }, 9);
+        ctx.save(); ctx.translate(W * 0.2, H * 0.86); ctx.scale(1, 1); C.hedgehog(ctx, W * 0.16, 0.4, 1, { moving: false }); ctx.restore();
+        ctx.save(); ctx.translate(W * 0.8, H * 0.86); ctx.scale(-1, 1); C.bunny(ctx, W * 0.15, 0.4, 2, {}); ctx.restore();
+        ctx.save(); ctx.translate(W * 0.78, H * 0.2); C.bee(ctx, W * 0.11, 0.3, 3, {}); ctx.restore();
+    } else if (kind === 'cover') {
+        // Обложка 800x470: название, дерево, зверята, монетки
+        sky('#6ec6ff', '#ffe7c4');
+        sunburst(W * 0.72, H * 0.48, W * 0.6, 0.3);
+        sparkles(18, 4, 'rgba(255,255,255,0.9)');
+        P.rainbowArc(ctx, W * 0.72, H * 0.98, H * 0.75, H * 0.03, 1, 0.9, 0.3);
+        hill(H * 0.84, '#9fd6a0', H * 0.05, 2);
+        hill(H * 0.9, '#6cc25a', H * 0.04, 0.5);
+        drawTree(W * 0.72, H * 0.92, H * 0.84, 7, 0.6);
+        ctx.save(); ctx.translate(W * 0.5, H * 0.88); C.hedgehog(ctx, H * 0.13, 0.4, 1, { moving: false }); ctx.restore();
+        ctx.save(); ctx.translate(W * 0.94, H * 0.88); ctx.scale(-1, 1); C.bunny(ctx, H * 0.13, 0.4, 2, {}); ctx.restore();
+        ctx.save(); ctx.translate(W * 0.56, H * 0.3); C.bee(ctx, H * 0.1, 0.3, 3, {}); ctx.restore();
+        ctx.save(); ctx.translate(W * 0.93, H * 0.26); ctx.scale(-1, 1); C.dragon(ctx, H * 0.13, 0.3, 4, { happy: 1 }); ctx.restore();
+        [['sunflower', 0.43], ['rose', 0.06], ['bluebell', 0.12]].forEach(([id, fx]) => {
+            ctx.save(); ctx.translate(W * fx, H * 0.95); F.draw(id, ctx, H * 0.17, 0.5); ctx.restore();
+        });
+        coinRain(9, { x: W * 0.05, y: H * 0.62, w: W * 0.36, h: H * 0.2, r: H * 0.035 }, 21);
+        const name = lang === 'ru' ? ['Денежное', 'дерево'] : ['Money', 'Tree'];
+        title(name[0], W * 0.27, H * 0.24, H * 0.17);
+        title(name[1], W * 0.27, H * 0.43, H * 0.17);
+    }
+    document.title = 'ready';
+</script>
+</body>
+</html>

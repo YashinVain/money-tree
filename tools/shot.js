@@ -68,7 +68,7 @@ async function run(scenarioPath) {
     const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-edge-'));
     const port = 9300 + Math.floor(Math.random() * 500);
     const edge = spawn(EDGE, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
-        '--no-first-run', '--autoplay-policy=no-user-gesture-required', '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' });
+        '--no-first-run', '--ignore-certificate-errors', '--autoplay-policy=no-user-gesture-required', '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' });
     let page;
     const report = [];
     try {
@@ -98,6 +98,13 @@ async function run(scenarioPath) {
                     if (v !== undefined) report.push((step.name || 'js') + ': ' + JSON.stringify(v));
                 } catch (e) {
                     report.push('ОШИБКА шага ' + (step.name || step.js.slice(0, 60)) + ': ' + e.message.split(String.fromCharCode(10))[0]);
+                }
+            }
+            if (step.click) {
+                // Настоящий клик мышью по координатам (например, крестик рекламы)
+                const [x, y] = step.click;
+                for (const type of ['mousePressed', 'mouseReleased']) {
+                    await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
                 }
             }
             if (step.sleep) await sleep(step.sleep);
