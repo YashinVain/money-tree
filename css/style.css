@@ -391,6 +391,8 @@ svg { display: block; width: 100%; height: 100%; }
 .note { font-size: calc(13.5px * var(--s)); font-weight: 700; color: var(--ink-soft); line-height: 1.35; padding: 2px 4px 10px; }
 .lvl { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 8px; background: #ffe9b8; font-size: 0.75em; vertical-align: 2px; }
 .good { color: var(--green-dark); font-weight: 900; }
+.inline-ico { display: inline-block; width: 38px; height: 38px; }
+.inline-ico img { width: 100%; height: 100%; }
 .sec-title { font-size: calc(16px * var(--s)); font-weight: 900; margin: 14px 4px 8px; }
 
 .bar {

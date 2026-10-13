@@ -212,12 +212,28 @@
                     i, id: h.id, n: k, seed: Math.random() * 100,
                     x: tree.x + (Math.random() - 0.5) * 100, y: groundY(),
                     dir: Math.random() < 0.5 ? -1 : 1, phase: Math.random() * 10,
+                    state: 'walk', stateT: 1 + Math.random() * 3,
                     hop: 0, hopT: Math.random() * 2, nextCoin: 1 + Math.random() * 2.5,
-                    appear: 0, perch: k % 2
+                    appear: 0, perch: k, jump: null, flap: 0, flapT: 4 + Math.random() * 8,
+                    happy: 0, breathT: 3 + Math.random() * 5
                 });
             }
             for (let k = have.length - 1; k >= need; k--) actors.splice(actors.indexOf(have[k]), 1);
         });
+    }
+
+    // Точка посадки на дереве (или на земле рядом, пока дерево маленькое)
+    function perchPoint(a, index) {
+        const u = uScale();
+        const info = tree.info;
+        if (info && info.perches.length && G.stageIndex() >= 2) {
+            // Сова сидит на месте 1, белочки — на остальных ветках
+            const spots = info.perches.length > 2 ? (a.id === 'owl' ? [1] : [0, 2, 3]) : [0];
+            const pt = info.perches[spots[index % spots.length] % info.perches.length];
+            return { x: tree.x + pt.x * tree.k, y: tree.y + pt.y * tree.k, dir: pt.x < 0 ? -1 : 1 };
+        }
+        const side = a.id === 'owl' ? 1 : -1;
+        return { x: tree.x + side * (95 + a.n * 30) * u, y: groundY() - 4 * u, dir: -side };
     }
 
     function updateActor(a, dt) {
@@ -226,12 +242,14 @@
         const half = view.w * 0.42;
         const edgeL = view.x + 30 * u, edgeR = view.x + view.w - 30 * u;
         a.appear = Math.min(1, a.appear + dt * 1.5);
+        a.happy = Math.max(0, a.happy - dt * 0.8);
         const info = tree.info;
         const crownX = tree.x + (info ? info.crownX * tree.k : 0);
         const crownY = tree.y + (info ? info.crownY * tree.k : -100);
         const crownR = Math.max(40 * u, info ? info.crownR * tree.k : 60);
 
         if (a.id === 'bee') {
+            // Пчёлка летает восьмёркой вокруг кроны
             const ph = time * (0.55 + a.n * 0.08) + a.seed;
             const nx = crownX + Math.sin(ph) * Math.min(crownR * 1.15 + 20 * u, view.w * 0.4);
             const ny = crownY + Math.sin(ph * 1.7) * crownR * 0.55 - 10 * u;
@@ -241,53 +259,82 @@
             // Ёжики гуляют слева от дерева, кролики прыгают справа
             const side = a.id === 'hedgehog' ? -1 : 1;
             const minX = tree.x + side * (60 * u + crownR * 0.2), maxX = tree.x + side * half;
-            const lo = Math.min(minX, maxX), hi = Math.max(minX, maxX);
-            if (a.x < lo || a.x > hi) a.x = U.lerp(lo, hi, 0.3 + a.n * 0.25);
+            const lo = Math.max(edgeL, Math.min(minX, maxX)), hi = Math.min(edgeR, Math.max(minX, maxX));
+            if (a.x < lo - 5 || a.x > hi + 5) a.x = U.lerp(lo, hi, 0.15 + a.n * 0.33 + Math.random() * 0.1);
+            a.stateT -= dt;
             if (a.id === 'hedgehog') {
-                a.x += a.dir * 26 * u * dt;
+                // То идёт, то останавливается понюхать воздух
+                if (a.stateT <= 0) {
+                    a.state = a.state === 'walk' ? 'idle' : 'walk';
+                    a.stateT = a.state === 'walk' ? U.rand(2, 5) : U.rand(0.8, 2);
+                    if (a.state === 'walk' && Math.random() < 0.4) a.dir *= -1;
+                }
+                if (a.state === 'walk') a.x += a.dir * 24 * u * dt;
                 if (a.x < lo) { a.x = lo; a.dir = 1; }
                 if (a.x > hi) { a.x = hi; a.dir = -1; }
                 a.y = gy + (8 + a.n * 10) * u;
             } else {
+                // Кролик: присел — прыжок — приземлился — посидел
                 a.hopT -= dt;
                 if (a.hop > 0) {
-                    a.hop = Math.min(1, a.hop + dt * 1.8);
-                    a.x += a.dir * 55 * u * dt;
+                    a.hop = Math.min(1, a.hop + dt * 1.7);
+                    if (a.hop > 0.15 && a.hop < 0.85) a.x += a.dir * 70 * u * dt;
                     if (a.hop >= 1) a.hop = 0;
                 } else if (a.hopT <= 0) {
                     a.hop = 0.001;
-                    a.hopT = 1.2 + Math.random() * 2.2;
-                    if (Math.random() < 0.35) a.dir *= -1;
+                    a.hopT = U.rand(0.9, 2.6);
+                    if (Math.random() < 0.3) a.dir *= -1;
                 }
                 if (a.x < lo) { a.x = lo; a.dir = 1; }
                 if (a.x > hi) { a.x = hi; a.dir = -1; }
-                a.y = gy + (12 + a.n * 10) * u - Math.sin(a.hop * Math.PI) * 26 * u;
+                const air = a.hop > 0.15 && a.hop < 0.85 ? Math.sin((a.hop - 0.15) / 0.7 * Math.PI) : 0;
+                a.y = gy + (12 + a.n * 10) * u - air * 28 * u;
             }
-            a.x = U.clamp(a.x, edgeL, edgeR);
-        } else if (a.id === 'squirrel' || a.id === 'owl') {
-            // Сидят на ветках; если дерево ещё маленькое — на пеньке/столбике рядом
-            const perches = info && info.perches.length ? info.perches : null;
-            if (perches && G.stageIndex() >= 2) {
-                const pi = a.id === 'owl' ? perches.length - 1 : (a.n % perches.length);
-                const pt = perches[pi];
-                a.x = tree.x + pt.x * tree.k;
-                a.y = tree.y + pt.y * tree.k;
-                a.dir = pt.x < 0 ? -1 : 1;
+        } else if (a.id === 'squirrel') {
+            // Белочка сидит на ветке и иногда перепрыгивает на другую
+            a.stateT -= dt;
+            if (!a.jump && a.stateT <= 0 && info && info.perches.length > 1 && G.stageIndex() >= 3) {
+                a.jump = { from: a.perch, to: a.perch + 1, t: 0 };
+                a.stateT = U.rand(6, 12);
+            }
+            if (a.jump) {
+                a.jump.t = Math.min(1, a.jump.t + dt * 1.4);
+                const p0 = perchPoint(a, a.jump.from), p1 = perchPoint(a, a.jump.to);
+                const tt = U.easeInOutSine(a.jump.t);
+                a.x = U.lerp(p0.x, p1.x, tt);
+                a.y = U.lerp(p0.y, p1.y, tt) - Math.sin(tt * Math.PI) * 50 * u;
+                a.dir = p1.x >= p0.x ? 1 : -1;
+                a.hop = a.jump.t;
+                if (a.jump.t >= 1) { a.perch = a.jump.to; a.jump = null; a.hop = 0; }
             } else {
-                const side = a.id === 'owl' ? 1 : -1;
-                a.x = tree.x + side * (95 + a.n * 30) * u;
-                a.y = gy - 18 * u;
-                a.dir = -side;
+                const p = perchPoint(a, a.perch);
+                a.x = p.x; a.y = p.y + Math.sin(time * 2 + a.seed) * 1.2 * u;
+                a.dir = p.dir;
             }
-            a.y += Math.sin(time * 2 + a.seed) * 1.2 * u;
+        } else if (a.id === 'owl') {
+            const p = perchPoint(a, 0);
+            a.x = p.x; a.y = p.y + Math.sin(time * 1.6 + a.seed) * 1.2 * u;
+            a.dir = p.dir;
+            // Время от времени сова взмахивает крыльями
+            a.flapT -= dt;
+            if (a.flapT <= 0) { a.flapT = U.rand(7, 14); a.flap = 1; }
+            a.flap = Math.max(0, a.flap - dt * 1.6);
         } else if (a.id === 'dragon') {
             const ph = time * 0.35 + a.seed;
             const rx = Math.min(view.w * 0.38, 260 * u), ry = 40 * u;
-            const nx = tree.x + Math.cos(ph) * rx;
             a.dir = -Math.sin(ph) >= 0 ? 1 : -1;
-            a.x = nx;
+            a.x = tree.x + Math.cos(ph) * rx;
             a.y = view.y + view.h * (0.2 + a.n * 0.08) + Math.sin(ph * 2) * ry;
+            // Дракончик выдыхает золотые искорки
+            a.breathT -= dt;
+            if (a.breathT <= 0) {
+                a.breathT = U.rand(3, 7);
+                for (let i = 0; i < 10; i++) {
+                    add({ type: 'spark', x: a.x + a.dir * 24 * u, y: a.y - 8 * u, vx: a.dir * U.rand(60, 140) * u, vy: U.rand(-40, 40) * u, life: U.rand(0.5, 0.9), size: U.rand(3, 6) * u, color: '#ffe066' });
+                }
+            }
         }
+        if (a.id !== 'squirrel' && a.id !== 'bunny') a.hop = 0;
 
         // Зверёк время от времени "приносит" монетку — она летит к счётчику
         a.nextCoin -= dt;
@@ -301,13 +348,15 @@
         const u = uScale();
         const size = { bee: 30, hedgehog: 38, squirrel: 38, bunny: 38, owl: 42, dragon: 46 }[a.id] * u;
         ctx.save();
-        ctx.translate(a.x, a.y);
+        // Радостный подскок после покупки
+        const jumpY = a.happy > 0 ? -Math.abs(Math.sin(a.happy * Math.PI * 3)) * 14 * u * a.happy : 0;
+        ctx.translate(a.x, a.y + jumpY);
         const pop = U.easeOutBack(a.appear);
         ctx.scale(a.dir * pop, pop);
-        if (a.id === 'dragon') {
-            ctx.globalAlpha = 0.95;
-        }
-        R.critters.draw(a.id, ctx, size, time + a.phase, a.n, a.id === 'bunny' ? a.hop : true);
+        R.critters.draw(a.id, ctx, size, time + a.phase, a.n, {
+            moving: a.state === 'walk', hop: a.hop, flap: a.flap ? Math.sin(a.flap * Math.PI * 3) * 0.5 + 0.5 : 0,
+            happy: a.happy, carry: true
+        });
         ctx.restore();
     }
 
@@ -440,10 +489,14 @@
         }
     };
 
-    SC.helperFx = (i) => {
+    // Зверёк куплен: новый появляется с искрами, остальные этого вида радуются
+    SC.helperFx = (i, first) => {
         syncActors();
-        const a = actors.filter(x => x.i === i).pop();
-        if (a) { a.appear = 0; burst(a.x, a.y, 18, CFG.helpers[i].color, 220); }
+        const list = actors.filter(x => x.i === i);
+        list.forEach(a => { a.happy = 1; });
+        const a = list[list.length - 1];
+        if (a && first) { a.appear = 0; burst(a.x, a.y, 18, CFG.helpers[i].color, 220); }
+        else if (a) burst(a.x, a.y - 10 * uScale(), 8, '#fff6b0', 140);
     };
 
     SC.flowerFx = (i) => {
@@ -886,7 +939,7 @@
         const x = c.getContext('2d');
         if (kind === 'helper') {
             x.translate(s * 0.48, s * 0.56);
-            R.critters.draw(id, x, s * 0.62, 0.3, 0, id === 'bunny' ? 0 : true);
+            R.critters.draw(id, x, s * 0.62, 0.3, 0, { moving: false });
         } else if (kind === 'flower') {
             x.translate(s / 2, s * 0.93);
             R.flowers.draw(id, x, s * 0.86, 0);

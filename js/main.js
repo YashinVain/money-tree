@@ -106,7 +106,7 @@
     // ---------- Окно копилки ----------
     function showOffline(gain, awaySec) {
         const h = Math.floor(awaySec / 3600), m = Math.floor((awaySec % 3600) / 60);
-        const timeStr = h > 0 ? t('time_h_m', { h, m }) : t('time_m', { m: Math.max(1, m) });
+        const timeStr = h > 0 ? (m > 0 ? t('time_h_m', { h, m }) : t('time_h', { h })) : t('time_m', { m: Math.max(1, m) });
         enqueue((done) => {
             const capH = Math.round(G.offlineCapSec() / 3600);
             UI.celebrate({
@@ -126,7 +126,7 @@
                 const p = document.createElement('p');
                 p.className = 'desc';
                 p.style.cssText = 'text-align:center;padding:0 18px';
-                p.textContent = t('offline_full', { t: t('time_h_m', { h: capH, m: 0 }).replace(' 0 мин', '').replace(' 0 min', '') });
+                p.textContent = t('offline_full', { t: t('time_h', { h: capH }) });
                 m2.el.querySelector('.modal-hero').appendChild(p);
             }
         });
@@ -245,7 +245,7 @@
         });
         R.on('buyHelper', (r) => {
             R.audio[r.count > 1 ? 'buyBig' : 'buy']();
-            if (r.first) R.scene.helperFx(r.index);
+            R.scene.helperFx(r.index, r.first);
             if (r.milestone) {
                 UI.toast(t('helper_' + CFG.helpers[r.index].id), t('helper_milestone', { n: r.milestone }), UI.img('helper', CFG.helpers[r.index].id));
                 R.audio.achievement();

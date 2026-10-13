@@ -91,8 +91,13 @@ async function run(scenarioPath) {
                 await sleep(step.wait || 1500);
             }
             if (step.js) {
-                const v = await page.eval(step.js);
-                if (v !== undefined) report.push((step.name || 'js') + ': ' + JSON.stringify(v));
+                // Ошибка в шаге не останавливает сценарий — записываем и идём дальше
+                try {
+                    const v = await page.eval(step.js);
+                    if (v !== undefined) report.push((step.name || 'js') + ': ' + JSON.stringify(v));
+                } catch (e) {
+                    report.push('ОШИБКА шага ' + (step.name || step.js.slice(0, 60)) + ': ' + e.message.split(String.fromCharCode(10))[0]);
+                }
             }
             if (step.sleep) await sleep(step.sleep);
             if (step.shot) {

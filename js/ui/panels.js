@@ -182,7 +182,7 @@
                 top = `<div class="card hl" style="text-align:center">
                     <div class="desc">${t('garden_gain')}</div>
                     <div class="title" style="font-size:34px;display:flex;align-items:center;justify-content:center;gap:6px;margin:4px 0">
-                        <span style="width:38px;height:38px;display:inline-block">${UI.seedImg()}</span><span data-k="gain"></span></div>
+                        <span class="inline-ico">${UI.seedImg()}</span><span data-k="gain"></span></div>
                     <div class="desc" data-k="next"></div>
                     <button class="btn big wide gold" style="margin-top:10px" data-a="prestige" data-k="pbtn">${R.icon('garden').replace('<svg', '<svg class="ico" style="width:28px;height:28px"')}${t('garden_button')}</button>
                     <div class="desc" style="margin-top:10px">🔄 ${t('garden_resets')}</div>
@@ -305,7 +305,7 @@
                 const done = q.progress >= q.target;
                 const target = q.type === 'earn' ? U.fmt(q.target) : q.target;
                 return `<div class="card ${q.claimed ? 'done' : (done ? 'hl' : '')}"><div class="row">
-                    <div class="pic" style="padding:9px">${R.icon(M.questTypes[q.type].icon)}</div>
+                    <div class="pic" style="padding:9px">${iconOrPic(M.questTypes[q.type].icon)}</div>
                     <div class="grow"><div class="title" style="font-size:16px">${t('quest_' + q.type, { n: target })}</div>
                     <div class="bar"><i style="width:${q.progress / q.target * 100}%"></i><span>${q.type === 'earn' ? U.fmt(q.progress) : Math.floor(q.progress)} / ${target}</span></div></div>
                     ${q.claimed ? `<div class="pic" style="width:40px;height:40px;border:0;background:none">${R.icon('check')}</div>`
@@ -345,6 +345,11 @@
         }
         return `<div class="panel-head"><div class="grow">${t('goals_title')}</div><button class="round-btn" data-a="close">${R.icon('close')}</button></div>
             <div class="panel-body">${tabs}${body}</div>`;
+    }
+
+    // Значок: рисунок из сада (монетка, бабочка, дерево) или SVG-иконка
+    function iconOrPic(icon) {
+        return ['tree', 'coin', 'seed', 'butterfly'].includes(icon) ? achPic(icon) : R.icon(icon);
     }
 
     function achPic(icon) {

@@ -499,8 +499,11 @@
         info.crownY = twoTier ? cy - Rr * 0.35 : cy;
         info.crownR = Rr * (twoTier ? 1.25 : 1);
         // Места для белочки и совы — на краях кроны
+        // 0 и 2, 3 — для белочек, 1 — место совы (правый край кроны)
         info.perches.push({ x: bend - Rr * 0.72, y: cy - Rr * 0.3 });
         info.perches.push({ x: bend + Rr * 0.74, y: cy - Rr * 0.22 });
+        info.perches.push({ x: bend - Rr * 0.3, y: cy - Rr * (twoTier ? 1.35 : 0.72) });
+        info.perches.push({ x: bend + Rr * 0.32, y: cy - Rr * (twoTier ? 1.3 : 0.7) });
         return info;
     };
 
