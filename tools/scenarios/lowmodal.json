@@ -1,0 +1,19 @@
+{
+  "out": "out",
+  "steps": [
+    { "size": [740, 360, 2, true] },
+    { "open": "http://127.0.0.1:8934/index.html", "wait": 1500 },
+    { "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=64; s.runEarned=3e7; s.coins=1e6; s.helpers=[20,15,8,2,0,0]; s.hints={tap:1,upgrade:1,helper:1,release:1}; s.gift={lastDay:R.util.dayKey(Date.now()),streak:1}; s.savedAt=Date.now()-5*3600*1000; s.stats.playMs=1e6; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();", "sleep": 1500 },
+    { "js": "document.getElementById('btn-play').click();", "sleep": 1200 },
+    { "shot": "low1-offline-740.png" },
+    { "name": "btnVisible", "js": "const b=[...document.querySelectorAll('.modal [data-a]')].map(e=>{const r=e.getBoundingClientRect(); return e.dataset.a+':'+(r.bottom<=innerHeight && r.top>=0 ? 'ok':'cut');}); return b;" },
+    { "js": "document.querySelector('.modal [data-a=offlineTake]').click(); document.querySelector('.tab[data-tab=garden]').click(); await new Promise(r=>setTimeout(r,500)); document.querySelector('[data-a=prestige]').click();", "sleep": 800 },
+    { "shot": "low2-confirm-740.png" },
+    { "name": "btnVisible2", "js": "const m=document.querySelector('.modal-scroll'); m.scrollTop=1000; await new Promise(r=>setTimeout(r,200)); return [...document.querySelectorAll('.modal [data-a]')].map(e=>{const r=e.getBoundingClientRect(); return e.dataset.a+':'+(r.bottom<=innerHeight+1 && r.top>=0 ? 'ok':'cut');});" },
+    { "size": [568, 320, 2, true] },
+    { "js": "window.dispatchEvent(new Event('resize'));", "sleep": 800 },
+    { "shot": "low3-confirm-568.png" },
+    { "name": "btnVisible3", "js": "const m=document.querySelector('.modal-scroll'); m.scrollTop=1000; await new Promise(r=>setTimeout(r,200)); return [...document.querySelectorAll('.modal [data-a]')].map(e=>{const r=e.getBoundingClientRect(); return e.dataset.a+':'+(r.bottom<=innerHeight+1 && r.top>=0 ? 'ok':'cut');});" },
+    { "js": "document.querySelector('.modal [data-a=close]').click();", "sleep": 600, "shot": "low4-game-568.png" }
+  ]
+}

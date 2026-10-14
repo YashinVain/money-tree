@@ -33,12 +33,14 @@
             { id: 'bluebell', color: '#6f9bff', unlockLevel: 30, effect: { buffDuration: 0.3 } },
             { id: 'dandelion', color: '#fff27a', unlockLevel: 45, effect: { chargeSpeed: 0.3 } },
             { id: 'clover', color: '#5fd65a', unlockLevel: 60, effect: { helperMult: 0.5 } },
-            { id: 'rose', color: '#ff4f6d', unlockLevel: 75, effect: { critChance: 0.1 } },
+            { id: 'rose', color: '#ff4f6d', unlockLevel: 75, effect: { critChance: 0.07, critMult: 5 } },
             { id: 'lavender', color: '#b98bff', unlockLevel: 90, effect: { cometRate: 1 } },
             { id: 'lotus', color: '#ff9fd0', unlockLevel: 105, effect: { offlineMult: 1 } },
             { id: 'rainbowflower', color: '#ff8a3d', unlockLevel: 120, effect: { globalMult: 1 } }
         ],
-        critMult: 10,
+        // Золотой тап есть с самого начала: 3% шанс, монетки x5 (Роза усиливает до 10% и x10)
+        critChance: 0.03,
+        critMult: 5,
 
         // ---- Зверята-помощники: монетки в секунду, уровни без потолка, вехи x2 ----
         helpers: [
@@ -85,8 +87,7 @@
         // ---- Бонусы за рекламу (rewarded video) ----
         ads: {
             incomeX2: { minutes: 15, maxMinutes: 240 },   // каждый просмотр +15 мин, максимум 4 ч
-            chargeX2: { minutes: 10, cooldown: 10 * 60000 },
-            instantCharge: { cooldown: 3 * 60000 },
+            shower: { seconds: 60, cooldown: 5 * 60000 },    // радужный дождь на целую минуту
             chest: { seconds: 300, cooldown: 8 * 60000 }    // доход за 5 минут
         },
         freeChest: { seconds: 600, cooldown: 3 * 3600000 }, // бесплатная корзинка раз в 3 часа
@@ -98,6 +99,9 @@
         // ---- Ежедневные задания и подарок ----
         questsPerDay: 3,
         questRewardSeconds: 180,
+        stageGiftSeconds: 45,        // подарок за новую стадию дерева = доход за 45 сек
+        gardenGiftLevels: 6,          // стартовый подарок нового сада: монетки на 6 уровней дерева
+        giftDay7Seeds: 2,             // 7-й день серии подарков — ещё и золотые семена
         dailyGiftSeconds: [180, 300, 420, 600, 780, 1020, 1500]   // по дням серии
     };
 })(typeof window !== 'undefined' ? window : globalThis);

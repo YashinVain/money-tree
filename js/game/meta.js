@@ -56,7 +56,7 @@
 
     M.ensureDaily = () => {
         const today = U.dayKey(G.now());
-        if (G.S.daily && G.S.daily.day === today) return false;
+        if (G.S.daily && G.S.daily.day >= today) return false;
         const types = Object.keys(M.questTypes);
         // Перемешиваем и берём 3 разных
         for (let i = types.length - 1; i > 0; i--) {
@@ -118,7 +118,8 @@
     };
 
     // ---------- Подарок за вход ----------
-    M.giftAvailable = () => G.S.gift.lastDay !== U.dayKey(G.now());
+    // Подарок доступен только в новый день (если часы перевели назад — нет)
+    M.giftAvailable = () => !G.S.gift.lastDay || G.S.gift.lastDay < U.dayKey(G.now());
 
     // Номер дня серии, который получит игрок, если заберёт подарок сейчас (1..7)
     M.giftStreakDay = () => {
@@ -131,6 +132,7 @@
     };
 
     M.giftAmount = (day = M.giftStreakDay()) => G.secondsOfIncome(CFG.dailyGiftSeconds[day - 1]);
+    M.giftSeeds = (day = M.giftStreakDay()) => (day === 7 ? CFG.giftDay7Seeds : 0);
 
     M.claimGift = () => {
         if (!M.giftAvailable()) return 0;
@@ -141,7 +143,9 @@
         G.S.gift.streak = gap === 1 ? G.S.gift.streak + 1 : 1;
         G.S.gift.lastDay = today;
         G.addCoins(amount);
-        R.emit('gift', { day, amount });
+        const seeds = M.giftSeeds(day);
+        if (seeds) { G.S.seeds += seeds; G.S.seedsLife += seeds; }
+        R.emit('gift', { day, amount, seeds });
         return amount;
     };
 
@@ -154,12 +158,10 @@
         R.on('comet', () => M.questProgress('comets', 1));
     };
 
-    // "Заработать X" считаем по приросту lifeEarned — вызывается из игрового цикла
-    let lastEarned = null;
+    // "Заработать X" — только то, что заработано прямо в игре (тапы и зверята),
+    // копилка и подарки не считаются. Вызывается из игрового цикла
     M.trackEarn = () => {
-        if (lastEarned === null || G.S.lifeEarned < lastEarned) lastEarned = G.S.lifeEarned;
-        const delta = G.S.lifeEarned - lastEarned;
-        if (delta > 0) M.questProgress('earn', delta);
-        lastEarned = G.S.lifeEarned;
+        if (G.liveEarned > 0) M.questProgress('earn', G.liveEarned);
+        G.liveEarned = 0;
     };
 })(typeof window !== 'undefined' ? window : globalThis);

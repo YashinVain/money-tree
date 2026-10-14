@@ -32,8 +32,12 @@
         <div id="stage-chip"><span class="ci"></span><span class="cn"></span><span class="mini"><i></i></span></div>
 
         <div id="controls">
+            <div id="offers"></div>
             <div id="status"></div>
-            <button id="btn-rainbow"><span class="fill"></span><span class="label"></span></button>
+            <div class="controls-row">
+                <button id="btn-grow" class="btn"></button>
+                <button id="btn-rainbow"><span class="fill"></span><span class="label"></span></button>
+            </div>
         </div>
 
         <section id="panel">
@@ -52,13 +56,31 @@
         <div id="hand" class="hidden"></div>
     </div>
 
+    <!-- Надписи заставки сразу на языке браузера (до загрузки SDK) -->
+    <script>
+        (function () {
+            var en = !/^(ru|be|kk|uk|uz)/i.test(navigator.language || 'ru');
+            if (en) {
+                document.documentElement.lang = 'en';
+                document.title = 'Money Tree';
+                window.__titleEn = true;
+            }
+        })();
+    </script>
+
     <div id="title">
         <div class="logo">
-            <h1>Денежное дерево</h1>
+            <h1 id="title-h1">Денежное дерево</h1>
             <p></p>
         </div>
         <div class="title-bottom">
             <div id="loading-text">Загрузка…</div>
+            <script>
+                if (window.__titleEn) {
+                    document.getElementById('title-h1').textContent = 'Money Tree';
+                    document.getElementById('loading-text').textContent = 'Loading…';
+                }
+            </script>
             <button id="btn-play" class="btn big hidden">Играть</button>
         </div>
     </div>
@@ -76,6 +98,7 @@
     <script src="js/view/tree.js"></script>
     <script src="js/view/critters.js"></script>
     <script src="js/view/flowers.js"></script>
+    <script src="js/view/decor.js"></script>
     <script src="js/view/scene.js"></script>
     <script src="js/ui/icons.js"></script>
     <script src="js/ui/ui.js"></script>

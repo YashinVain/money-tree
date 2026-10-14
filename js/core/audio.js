@@ -82,7 +82,9 @@
 
     // Один тон с огибающей: мягкая атака, экспоненциальное затухание
     function tone(freq, opt) {
-        if (!A.ctx || !A.soundOn || A.paused) return;
+        if (!A.ctx || A.paused) return;
+        // Звуки и музыка выключаются независимо: музыка идёт через свою шину
+        if (!A.soundOn && !(opt && opt.bus)) return;
         const ctx = A.ctx;
         const o = Object.assign({ type: 'sine', at: 0, attack: 0.005, decay: 0.2, peak: 0.2, to: null, send: 0, cutoff: 5000, detune: 0 }, opt);
         const t = ctx.currentTime + o.at;
@@ -257,7 +259,6 @@
 
     function musicTick() {
         if (!A.ctx || !A.musicOn || A.paused) return;
-        const ctx = A.ctx;
         const chord = PROG[Math.floor(musicStep / 8) % PROG.length];
         const beat = musicStep % 8;
 
@@ -277,8 +278,6 @@
             const f = midiToHz(60 + musicKey + note);
             const t0 = Math.random() * 0.1;
             tone(f, { type: 'sine', peak: 0.03, attack: 0.01, decay: 1.4, at: t0, bus: musicBus });
-            const s = ctx.createGain();
-            s.gain.value = 0;
         }
         musicStep++;
     }

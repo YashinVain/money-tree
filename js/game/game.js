@@ -31,12 +31,16 @@
         stats: { taps: 0, crits: 0, releases: 0, comets: 0, buys: 0, helpersBought: 0, playMs: 0, ads: 0 },
         ach: {},
         boosts: { incomeX2End: 0, chargeX2End: 0 },
-        adReady: { chargeX2: 0, instantCharge: 0, chest: 0 },
+        adReady: { shower: 0, chest: 0 },
+        maxStageEver: 0,      // самая высокая стадия, до которой дерево дорастало в прошлых садах
         freeChestAt: 0,
         daily: null,
         gift: { lastDay: '', streak: 0 },
         hints: {},
-        settings: { lang: null, sound: true, music: true },
+        settings: { lang: null, sound: true, music: true, vibro: true },
+        pendingOffline: 0,    // копилка, которую игрок ещё не забрал (не теряется при перезагрузке)
+        pendingAway: 0,       // сколько секунд игрока не было (для окна копилки)
+        playerId: '',         // id игрока Яндекса, чей это сад
         savedAt: 0
     });
 
@@ -118,8 +122,8 @@
     G.buffMult = () => (G.buffActive() ? G.buffMultValue() : 1);
     G.frenzyActive = () => G.S.frenzyEnd > G.now();
 
-    G.critChance = () => G.flowerEffect('critChance');
-    G.critMult = () => CFG.critMult + G.stagePerk('critMult');
+    G.critChance = () => CFG.critChance + G.flowerEffect('critChance');
+    G.critMult = () => CFG.critMult + G.flowerEffect('critMult') + G.stagePerk('critMult');
 
     G.tapValue = (crit) => {
         let v = G.tapBase() * G.globalMult() * G.buffMult();
@@ -170,6 +174,9 @@
     };
 
     // ---------- Монетки ----------
+    // Доход, заработанный прямо в игре (тапы и зверята, без копилки и подарков) — для заданий
+    G.liveEarned = 0;
+
     G.addCoins = (amount) => {
         if (!(amount > 0)) return;
         G.S.coins += amount;
@@ -189,6 +196,7 @@
         const crit = Math.random() < G.critChance();
         const value = G.tapValue(crit);
         G.addCoins(value);
+        G.liveEarned += value;
 
         const before = G.S.charge;
         G.S.charge = Math.min(CFG.chargeMax, G.S.charge + G.chargePerTap());
@@ -336,6 +344,7 @@
         G.S.stats.playMs += dt * 1000;
         const passive = G.passivePerSec() * dt;
         G.addCoins(passive);
+        G.liveEarned += passive;
         passiveAcc += passive;
 
         const taps = [];
@@ -357,7 +366,7 @@
     G.offlineCapSec = () => CFG.offlineMaxSec + G.perkValue('basket') * 3600;
     G.offlineRate = () => CFG.offlineRate * (1 + G.flowerEffect('offlineMult'));
 
-    // Пока игрока нет, зверята продолжают работать (40% скорости, до 6+ часов)
+    // Пока игрока нет, зверята продолжают работать (30% скорости, до 4 часов, Корзинка — больше)
     G.offlineGain = (seconds) => {
         if (seconds < CFG.offlineMinSec) return 0;
         const sec = Math.min(seconds, G.offlineCapSec());
@@ -387,6 +396,7 @@
             });
         }
 
+        G.S.maxStageEver = Math.max(G.S.maxStageEver, G.stageIndex());
         G.S.seeds += gained;
         G.S.seedsLife += gained;
         G.S.prestiges++;
@@ -399,7 +409,12 @@
         G.S.cooldownEnd = 0;
         G.S.frenzyEnd = 0;
 
-        R.emit('prestige', { gained });
+        // Стартовый подарок нового сада — чтобы начало не ощущалось потерей
+        let gift = 0;
+        for (let k = 0; k < CFG.gardenGiftLevels; k++) gift += G.treePrice(G.S.level + k);
+        gift *= 1 + G.perkValue('can');
+        G.S.coins = gift;
+        R.emit('prestige', { gained, gift });
         return gained;
     };
 
@@ -420,6 +435,9 @@
         R.emit('buyPerk', { id });
         return true;
     };
+
+    // Подарок за новую стадию дерева
+    G.stageGift = () => G.secondsOfIncome(CFG.stageGiftSeconds);
 
     // ---------- Золотая бабочка ----------
     G.cometLuckMult = () => 1 + G.perkValue('net');
@@ -481,13 +499,12 @@
         const result = { type, amount: 0 };
         if (type === 'incomeX2') {
             G.S.boosts.incomeX2End = Math.max(G.S.boosts.incomeX2End, now) + CFG.ads.incomeX2.minutes * 60000;
-        } else if (type === 'chargeX2') {
-            G.S.boosts.chargeX2End = Math.max(G.S.boosts.chargeX2End, now) + CFG.ads.chargeX2.minutes * 60000;
-            G.S.adReady.chargeX2 = now + CFG.ads.chargeX2.cooldown;
-        } else if (type === 'instantCharge') {
-            G.S.charge = CFG.chargeMax;
-            G.S.cooldownEnd = Math.min(G.S.cooldownEnd, now);
-            G.S.adReady.instantCharge = now + CFG.ads.instantCharge.cooldown;
+        } else if (type === 'shower') {
+            // Радужный дождь на целую минуту, после него радуга сразу готова к новому кругу
+            G.S.buffEnd = Math.max(G.S.buffEnd, now) + CFG.ads.shower.seconds * 1000;
+            G.S.cooldownEnd = G.S.buffEnd;
+            G.S.adReady.shower = now + CFG.ads.shower.cooldown;
+            R.emit('release', { duration: CFG.ads.shower.seconds * 1000, mult: G.buffMultValue(), ad: true });
         } else if (type === 'chest') {
             result.amount = G.secondsOfIncome(CFG.ads.chest.seconds);
             G.addCoins(result.amount);

@@ -200,17 +200,73 @@
     }
 
     // Пушистая крона-облако: кольцо "облачков" по эллипсу + несколько в середине
-    function dome(rnd, cx, cy, Rr, n, k) {
+    function dome(rnd, cx, cy, Rr, n, k, wide = 1) {
         const blobs = [];
         blobs.push({ x: cx, y: cy, r: Rr * 0.62 });
-        blobs.push({ x: cx - Rr * 0.32, y: cy + Rr * 0.12, r: Rr * 0.5 });
-        blobs.push({ x: cx + Rr * 0.34, y: cy + Rr * 0.1, r: Rr * 0.5 });
+        blobs.push({ x: cx - Rr * 0.32 * wide, y: cy + Rr * 0.12, r: Rr * 0.5 });
+        blobs.push({ x: cx + Rr * 0.34 * wide, y: cy + Rr * 0.1, r: Rr * 0.5 });
         for (let i = 0; i < n; i++) {
             const a = -Math.PI / 2 + (i / n) * Math.PI * 2 + (rnd() - 0.5) * 0.25;
             const rr = Rr * (0.36 + rnd() * 0.12);
-            blobs.push({ x: cx + Math.cos(a) * Rr * 0.66, y: cy + Math.sin(a) * Rr * 0.5, r: rr });
+            blobs.push({ x: cx + Math.cos(a) * Rr * 0.66 * wide, y: cy + Math.sin(a) * Rr * 0.5, r: rr });
         }
         return blobs;
+    }
+
+    // Качели на ветке (яблоня)
+    function swing(ctx, x, y, len, k) {
+        ctx.save();
+        ctx.strokeStyle = '#8a5a30';
+        ctx.lineWidth = 2 * k;
+        ctx.beginPath();
+        ctx.moveTo(x - 9 * k, y); ctx.lineTo(x - 9 * k, y + len);
+        ctx.moveTo(x + 9 * k, y); ctx.lineTo(x + 9 * k, y + len);
+        ctx.stroke();
+        P.roundRect(ctx, x - 13 * k, y + len - 2 * k, 26 * k, 6 * k, 2 * k);
+        P.fillStroke(ctx, '#ff8a6b', '#7a2a18', 1.6 * k);
+        ctx.restore();
+    }
+
+    // Кристаллы на макушке волшебного дерева
+    function crystals(ctx, x, y, r, k) {
+        const cols = ['#9ff0ff', '#ffb3f0', '#fff27a', '#c9a8ff', '#a8ffcf'];
+        [[-0.55, 0.2, 0.75], [-0.22, -0.05, 1], [0.12, -0.12, 1.15], [0.45, 0.08, 0.85]].forEach(([dx, dy, sc], i) => {
+            const cx = x + dx * r, cy = y + dy * r, h = 26 * k * sc, w = 9 * k * sc;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - h);
+            ctx.lineTo(cx + w, cy - h * 0.35);
+            ctx.lineTo(cx + w * 0.6, cy + 4 * k);
+            ctx.lineTo(cx - w * 0.6, cy + 4 * k);
+            ctx.lineTo(cx - w, cy - h * 0.35);
+            ctx.closePath();
+            P.fillStroke(ctx, P.linear(ctx, cx - w, cy - h, cx + w, cy, ['#ffffff', cols[i], U.shade(cols[i], -0.3)]), '#3d2a8a', 1.8 * k);
+            ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+            ctx.lineWidth = 1.4 * k;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - h * 0.9); ctx.lineTo(cx, cy);
+            ctx.stroke();
+        });
+    }
+
+    // Корни у основания больших деревьев (у волшебного — светятся)
+    function roots(ctx, baseW, k, glow) {
+        ctx.save();
+        ctx.lineCap = 'round';
+        [[-1, 0.9], [1, 0.85], [-1, 1.5], [1, 1.45]].forEach(([d, len], i) => {
+            const w = baseW * (i < 2 ? 0.32 : 0.22);
+            ctx.strokeStyle = glow ? '#b9a3ff' : '#7a4e26';
+            ctx.lineWidth = w;
+            ctx.beginPath();
+            ctx.moveTo(d * baseW * 0.3, -2 * k);
+            ctx.quadraticCurveTo(d * baseW * 0.7 * len, 0, d * baseW * len, 6 * k);
+            ctx.stroke();
+            if (glow) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = w * 0.3;
+                ctx.stroke();
+            }
+        });
+        ctx.restore();
     }
 
     function blossomFlower(ctx, x, y, r, color) {
@@ -325,8 +381,8 @@
 
         if (s === 0) {
             // Семечко в холмике, с каждым уровнем пробивается росток
-            mound(ctx, 80 * k, k);
-            const sr = (13 + p * 3) * k;
+            mound(ctx, 56 * k, k);
+            const sr = (14 + p * 3) * k;
             ctx.save();
             ctx.translate(0, -sr * 0.55);
             ctx.rotate(-0.3);
@@ -354,7 +410,7 @@
             info.crownY = -sr;
             info.crownR = 30 * k;
             info.top = -sr * 2.5;
-            info.halfW = 42 * k;
+            info.halfW = 32 * k;
             return info;
         }
 
@@ -456,13 +512,22 @@
         branch(ctx, bend, -trunkH * 0.82, bend - Rr * 0.5, cy + Rr * 0.25, baseW * 0.36, '#6e4424');
         branch(ctx, bend, -trunkH * 0.88, bend + Rr * 0.55, cy + Rr * 0.2, baseW * 0.34, '#6e4424');
 
-        let blobs = dome(rnd, bend, cy, Rr, 9, k);
+        if (s >= 6) roots(ctx, baseW, k, s === 6);
+        let blobs = dome(rnd, bend, cy, Rr, 9, k, s === 5 ? 1.22 : 1);
         if (twoTier) {
-            // Древо Мира — двухъярусная крона
-            blobs = blobs.concat(dome(rnd, bend, cy - Rr * 0.78, Rr * 0.7, 7, k));
+            // Древо Мира — двухъярусная крона: пышный зелёный низ и золотая макушка
+            const top = dome(rnd, bend, cy - Rr * 0.82, Rr * 0.72, 7, k);
+            crown(ctx, blobs, ['#b8f08a', '#55c24f', '#2f9a45', '#1f5e2c'], k, s);
+            crown(ctx, top, cc, k, s + 1);
+            blobs = blobs.concat(top);
+        } else {
+            crown(ctx, blobs, cc, k, s);
         }
-        crown(ctx, blobs, cc, k, s);
         fit(blobs);
+        if (s === 6) {
+            crystals(ctx, bend, cy - Rr * 0.72, Rr, k);
+            info.top = Math.min(info.top, cy - Rr * 0.72 - 30 * k);
+        }
 
         // Украшения по стадиям — их становится больше с прогрессом
         const spots = [];
@@ -479,6 +544,7 @@
         if (s === 5) {
             const count = Math.round(6 + p * 12);
             spots.slice(0, count).forEach((pt, i) => apple(ctx, pt.x, pt.y, 9 * k, i % 7 === 3));
+            swing(ctx, bend + Rr * 0.62, cy + Rr * 0.55, Math.max(20 * k, -(cy + Rr * 0.55) - 18 * k), k);
         }
         if (s === 6) {
             const count = Math.round(6 + p * 10);

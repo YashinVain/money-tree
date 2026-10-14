@@ -61,7 +61,7 @@
 
     // Какую долю высоты сада занимает дерево: с каждой стадией всё больше
     function treeFrac(s, p) {
-        const F = [0.13, 0.26, 0.4, 0.5, 0.55, 0.58, 0.61, 0.64];
+        const F = [0.24, 0.33, 0.42, 0.5, 0.55, 0.58, 0.61, 0.64];
         const next = s < 7 ? F[s + 1] : F[7] + 0.03;
         return U.lerp(F[s], U.lerp(F[s], next, 0.85), p);
     }
@@ -72,12 +72,18 @@
         return { s, p };
     }
 
+    // Сколько пикселей в единице мира для сада высотой h и шириной w
+    function treeScale(h, w) {
+        const { s, p } = currentTreeParams();
+        const m = R.tree.measure(s, p);
+        return Math.min(h * treeFrac(s, p) / m.h, w * 0.9 / (m.halfW * 2));
+    }
+
     function updateTreeSprite(force) {
         const { s, p } = currentTreeParams();
         // Вписываем дерево и по высоте, и по ширине (на узком телефоне крона не вылезет)
-        const m = R.tree.measure(s, p);
-        const k = Math.min(view.h * treeFrac(s, p) / m.h, view.w * 0.9 / (m.halfW * 2));
-        const key = s + ':' + G.S.level + ':' + Math.round(k * dpr * 50);
+        const k = treeScale(view.th, view.tw);
+        const key = s + ':' + G.S.level + ':' + Math.round(k * dpr * 20);
         if (!force && key === spriteKey) return;
         const prevStage = sprite ? sprite.stage : s;
         const prev = sprite;
@@ -111,23 +117,41 @@
         }
     }
 
-    function groundY() { return view.y + view.h * 0.9; }
+    // Где на экране земля. Пока дерево маленькое, горизонт выше (меньше пустого неба),
+    // по мере роста он плавно опускается
+    const GROUND = [0.72, 0.76, 0.83, 0.88, 0.9, 0.9, 0.9, 0.9];
+    let groundFrac = 0.8;
+    function groundTarget() {
+        const st = G.stageIndex();
+        const p = G.isMaxed() ? 1 : G.subLevel() / CFG.levelsPerStage;
+        return U.lerp(GROUND[st], GROUND[Math.min(st + 1, 7)], p);
+    }
+    function groundY() { return view.y + view.h * groundFrac; }
 
     // Общий масштаб для зверят, цветов, текста — от высоты области сада
     function uScale() { return U.clamp(Math.min(view.h, view.w * 1.4) / 620, 0.55, 1.6); }
 
+    // Холмы, луг и неподвижные украшения рисуются один раз в отдельный холст
+    // относительно опорной линии земли; при выводе холст просто сдвигается.
+    // Так фон не перерисовывается каждый кадр, пока выезжает панель
+    let hillsRef = 0, hillsU = 1;
     function drawHills(pal) {
-        const key = W + 'x' + H + ':' + Math.round(groundY()) + ':' + pal.join('');
+        const u = Math.round(uScale() * 10) / 10;
+        const decorN = R.decor.unlocked(G.S.bestLevel).length;
+        const key = W + 'x' + H + ':' + Math.round(tree.x) + ':' + u + ':' + decorN + ':' + pal.join('');
         if (key === hillsKey && hillsCanvas) return;
         hillsKey = key;
+        hillsU = u;
         hillsCanvas = hillsCanvas || document.createElement('canvas');
+        const CH = H * 1.6;
         hillsCanvas.width = Math.ceil(W * dpr);
-        hillsCanvas.height = Math.ceil(H * dpr);
+        hillsCanvas.height = Math.ceil(CH * dpr);
         const c = hillsCanvas.getContext('2d');
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
-        c.clearRect(0, 0, W, H);
-        const gy = groundY();
-        const u = uScale();
+        c.clearRect(0, 0, W, CH);
+        const gy = hillsRef = H * 0.62;
+        const Hb = H;
+        H = CH;   // временно: луг тянется до низа высокого холста
         const layer = (base, amp, freq, phase, color, shade) => {
             c.beginPath();
             c.moveTo(0, H);
@@ -188,6 +212,31 @@
                 c.fill();
             }
         }
+        // Неподвижные украшения сада (дальние — меньше и выше, на холмах)
+        R.decor.unlocked(G.S.bestLevel).forEach(d => {
+            if (R.decor.animated[d.id]) return;
+            const pos = decorPos(d, gy, u);
+            R.decor.draw(c, d.id, pos.x, pos.y, pos.k, 0);
+        });
+        H = Hb;
+    }
+
+    // Где стоит украшение: depth 0 — на лугу, 1 — ближний холм, 2 — дальний, 3 — в небе
+    function decorPos(d, gy, u) {
+        const scale = [1, 0.75, 0.55, 0.7][d.depth];
+        const yOff = [10, -14, -48, -150][d.depth];
+        const x = U.clamp(tree.x + d.dx * W, 30 * u, W - 30 * u);
+        return { x, y: gy + yOff * u, k: scale * u };
+    }
+
+    // Анимированные украшения (мельница, фонтан, остров) — каждый кадр
+    function drawAnimatedDecor() {
+        const gy = groundY(), u = hillsU;
+        R.decor.unlocked(G.S.bestLevel).forEach(d => {
+            if (!R.decor.animated[d.id]) return;
+            const pos = decorPos(d, gy, u);
+            R.decor.draw(ctx, d.id, pos.x, pos.y, pos.k, time);
+        });
     }
 
     // ---------- Зверята в саду ----------
@@ -252,7 +301,7 @@
             // Пчёлка летает восьмёркой вокруг кроны
             const ph = time * (0.55 + a.n * 0.08) + a.seed;
             const nx = crownX + Math.sin(ph) * Math.min(crownR * 1.15 + 20 * u, view.w * 0.4);
-            const ny = crownY + Math.sin(ph * 1.7) * crownR * 0.55 - 10 * u;
+            const ny = Math.max(view.y + 26 * u, crownY + Math.sin(ph * 1.7) * crownR * 0.55 - 10 * u);
             a.dir = nx >= a.x ? 1 : -1;
             a.x = nx; a.y = ny;
         } else if (a.id === 'hedgehog' || a.id === 'bunny') {
@@ -324,7 +373,7 @@
             const rx = Math.min(view.w * 0.38, 260 * u), ry = 40 * u;
             a.dir = -Math.sin(ph) >= 0 ? 1 : -1;
             a.x = tree.x + Math.cos(ph) * rx;
-            a.y = view.y + view.h * (0.2 + a.n * 0.08) + Math.sin(ph * 2) * ry;
+            a.y = Math.max(view.y + 40 * u, view.y + view.h * (0.22 + a.n * 0.08) + Math.sin(ph * 2) * ry);
             // Дракончик выдыхает золотые искорки
             a.breathT -= dt;
             if (a.breathT <= 0) {
@@ -435,7 +484,17 @@
         }
         if (res.source === 'player') {
             add({ type: 'ring', x, y, life: 0.4, size: 10 * u, grow: 60 * u, color: '#ffffff' });
-            add({ type: 'text', x: x + U.rand(-10, 10) * u, y: y - 14 * u, vy: -70 * u, life: 0.9, size: (res.crit ? 30 : 22) * u, text: '+' + U.fmt(res.value), color: res.crit ? '#ffe14f' : '#ffffff', crit: res.crit });
+            const size = Math.max(res.crit ? 24 : 18, (res.crit ? 30 : 22) * u);
+            if (!res.crit && comboText && comboText.age < 0.3 && parts.includes(comboText)) {
+                comboText.value += res.value;
+                comboText.text = '+' + U.fmt(comboText.value);
+                comboText.age = 0.05;
+                comboText.size = Math.min(size * 1.5, comboText.size + 0.6);
+                comboText.y -= 2 * u;
+            } else {
+                const p = add({ type: 'text', x: x + U.rand(-24, 24) * u, y: y - U.rand(10, 26) * u, vy: -70 * u, life: 0.9, size, text: '+' + U.fmt(res.value), color: res.crit ? '#ffe14f' : '#ffffff', crit: res.crit, value: res.value });
+                if (!res.crit) comboText = p;
+            }
             if (res.crit) {
                 add({ type: 'text', x, y: y - 48 * u, vy: -50 * u, life: 1.0, size: 22 * u, text: R.t('crit'), color: '#ffcf3d', crit: true });
                 burst(x, y, 14, '#ffe680', 260);
@@ -529,6 +588,7 @@
     SC.passiveTick = () => { pendingPassive += G.takePassiveAccum(); };
 
     let flash = 0, flashColor = '#ffffff', shake = 0;
+    let comboText = null;
     const flowerPop = {};
 
     // ---------- Цветы в саду ----------
@@ -538,6 +598,32 @@
         const slot = Math.floor(i / 2);
         const base = Math.max(70 * u, (tree.info ? tree.info.crownR * tree.k * 0.55 : 40));
         return { x: tree.x + side * (base + slot * 46 * u), y: groundY() - 4 * u + (slot % 2) * 10 * u };
+    }
+
+    // ---------- Готовые картинки монетки ----------
+    const COIN_R = 24;
+    let coinFrames = null, coinFramesDpr = 0;
+    function coinSprite(spin) {
+        if (!coinFrames || coinFramesDpr !== dpr) {
+            coinFramesDpr = dpr;
+            coinFrames = [];
+            for (let i = 0; i < 8; i++) {
+                const c = document.createElement('canvas');
+                const size = Math.ceil((COIN_R * 2 + 6) * dpr);
+                c.width = c.height = size;
+                const x = c.getContext('2d');
+                x.scale(dpr, dpr);
+                P.coin(x, COIN_R + 3, COIN_R + 3, COIN_R, i / 8);
+                coinFrames.push(c);
+            }
+        }
+        const idx = Math.floor(((spin % 1) + 1) % 1 * 8) % 8;
+        return coinFrames[idx];
+    }
+    function drawCoin(x, y, r, spin) {
+        const img = coinSprite(spin);
+        const d = (COIN_R * 2 + 6) * (r / COIN_R);
+        ctx.drawImage(img, x - d / 2, y - d / 2, d, d);
     }
 
     // ---------- Тап ----------
@@ -608,6 +694,7 @@
     // ---------- Кадр ----------
     SC.frame = (dt) => {
         time += dt;
+        frameDt = dt;
         // Плавно подвинуть область сада к цели (открытие панели и т.п.)
         const a = 1 - Math.pow(0.0015, dt);
         view.x = U.lerp(view.x, view.tx, a);
@@ -616,10 +703,14 @@
         view.h = U.lerp(view.h, view.th, a);
 
         const pal = palette();
+        groundFrac = U.lerp(groundFrac, groundTarget(), 1 - Math.pow(0.05, dt));
+        const decorN = R.decor.unlocked(G.S.bestLevel).length;
+        if (decorSeen >= 0 && decorN > decorSeen) R.emit('decor', R.decor.unlocked(G.S.bestLevel).slice(decorSeen));
+        decorSeen = decorN;
         tree.x = view.x + view.w / 2;
         tree.y = groundY() - 14 * uScale();
         updateTreeSprite(false);
-        tree.k = sprite.kView;
+        tree.k = treeScale(view.h, view.w);
         tree.info = sprite.info;
 
         // Пружина дерева
@@ -633,6 +724,7 @@
         flash *= Math.pow(0.02, dt);
         shake *= Math.pow(0.001, dt);
 
+        ambient(dt);
         syncActors();
         actors.forEach(ac => updateActor(ac, dt));
         updateComet(dt);
@@ -642,13 +734,34 @@
         passiveTimer += dt;
         if (passiveTimer > 1) {
             passiveTimer = 0;
-            if (pendingPassive > 0) R.emit('passiveShown', pendingPassive);
             pendingPassive = 0;
         }
 
         render(pal);
     };
     let passiveTimer = 0;
+    let skyGrad = null, skyGradKey = '';
+    let frameDt = 1 / 60;
+    let decorSeen = -1;
+
+    let ambientAcc = 0;
+    function ambient(dt) {
+        const st = G.stageIndex();
+        if (st < 4 || !tree.info) return;
+        ambientAcc += dt * (st === 4 ? 2.2 : 1.6);
+        const u = uScale();
+        const r = tree.info.crownR * tree.k;
+        const cx = tree.x + tree.info.crownX * tree.k, cy = tree.y + tree.info.crownY * tree.k;
+        while (ambientAcc >= 1) {
+            ambientAcc -= 1;
+            if (st === 4 || st === 5) {
+                const col = st === 4 ? (Math.random() < 0.7 ? '#ffb3d9' : '#ffffff') : '#7ed957';
+                add({ type: 'leaf', x: cx + U.rand(-r, r), y: cy + U.rand(-r * 0.3, r * 0.4), vx: U.rand(-20, 20) * u, vy: U.rand(15, 35) * u, life: 3, size: U.rand(4, 6) * u, rot: Math.random() * 6, vr: U.rand(-2, 2), color: col });
+            } else {
+                add({ type: 'spark', x: cx + U.rand(-r * 1.2, r * 1.2), y: cy + U.rand(-r, r * 0.6), vx: 0, vy: U.rand(-25, -10) * u, life: 1.6, size: U.rand(2.5, 4.5) * u, color: st === 6 ? '#e4d8ff' : '#fff2a0' });
+            }
+        }
+    }
 
     function updateParts(dt) {
         for (let i = parts.length - 1; i >= 0; i--) {
@@ -681,10 +794,14 @@
     }
 
     function drawSky(pal) {
-        const g = ctx.createLinearGradient(0, 0, 0, groundY());
-        g.addColorStop(0, pal[0]);
-        g.addColorStop(1, pal[1]);
-        ctx.fillStyle = g;
+        const skyKey = pal[0] + pal[1] + Math.round(groundY());
+        if (skyKey !== skyGradKey) {
+            skyGradKey = skyKey;
+            skyGrad = ctx.createLinearGradient(0, 0, 0, groundY());
+            skyGrad.addColorStop(0, pal[0]);
+            skyGrad.addColorStop(1, pal[1]);
+        }
+        ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, W, H);
 
         const u = uScale();
@@ -743,7 +860,7 @@
 
         // Облака плывут
         clouds.forEach(c => {
-            c.x += c.v * (1 / 60);
+            c.x += c.v * frameDt;
             if (c.x > W + c.w) c.x = -c.w;
             ctx.globalAlpha = c.a * (s >= 6 ? 0.55 : 1);
             ctx.drawImage(c.img, c.x, c.y, c.w, c.h);
@@ -780,7 +897,8 @@
             ctx.save();
             ctx.translate(tree.x, tree.y);
             ctx.rotate(sway);
-            ctx.scale(sx * scale, sy * scale);
+            const fit = tree.k / sp.kView;     // плавное масштабирование во время анимации
+            ctx.scale(sx * scale * fit, sy * scale * fit);
             ctx.globalAlpha = alpha;
             ctx.drawImage(sp.canvas, -sp.ox / dpr, -sp.oy / dpr, sp.canvas.width / dpr, sp.canvas.height / dpr);
             ctx.restore();
@@ -818,7 +936,7 @@
         CFG.flowers.forEach((f, i) => {
             if (!G.flowerUnlocked(i)) return;
             const pos = flowerPos(i);
-            if (flowerPop[i] !== undefined && flowerPop[i] < 1) flowerPop[i] = Math.min(1, flowerPop[i] + 1 / 60);
+            if (flowerPop[i] !== undefined && flowerPop[i] < 1) flowerPop[i] = Math.min(1, flowerPop[i] + frameDt);
             const pop = flowerPop[i] === undefined ? 1 : U.easeOutBack(flowerPop[i]);
             ctx.save();
             ctx.translate(pos.x, pos.y);
@@ -833,10 +951,10 @@
             const k = p.age / p.life;
             if (p.type === 'coin') {
                 ctx.globalAlpha = k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1;
-                P.coin(ctx, p.x, p.y, p.size, p.spin + p.age * p.vs);
+                drawCoin(p.x, p.y, p.size, p.spin + p.age * p.vs);
             } else if (p.type === 'fly') {
                 ctx.globalAlpha = 1;
-                P.coin(ctx, p.x, p.y, p.size * (1 - k * 0.3), p.spin + p.age * 2);
+                drawCoin(p.x, p.y, p.size * (1 - k * 0.3), p.spin + p.age * 2);
             } else if (p.type === 'seed') {
                 ctx.globalAlpha = k > 0.8 ? (1 - k) / 0.2 : 1;
                 ctx.save();
@@ -900,7 +1018,8 @@
 
         drawSky(pal);
         drawHills(pal);
-        ctx.drawImage(hillsCanvas, 0, 0, W, H);
+        ctx.drawImage(hillsCanvas, 0, groundY() - hillsRef, W, H * 1.6);
+        drawAnimatedDecor();
         drawRainbow();
         // Дракончик летает за деревом
         actors.filter(a => a.id === 'dragon').forEach(drawActor);
@@ -949,6 +1068,9 @@
             const k = Math.min((s * 0.82) / hU, (s * 0.9) / wU);
             x.translate(s / 2, s * 0.9);
             R.tree.draw(x, st, 0.85, k);
+        } else if (kind === 'decor') {
+            x.translate(s / 2, s * 0.86);
+            R.decor.draw(x, id, 0, 0, s / 110, 0);
         } else if (kind === 'coin') {
             P.coin(x, s / 2, s / 2, s * 0.42, 0);
         } else if (kind === 'seed') {

@@ -68,7 +68,7 @@ async function run(scenarioPath) {
     const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-edge-'));
     const port = 9300 + Math.floor(Math.random() * 500);
     const edge = spawn(EDGE, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
-        '--no-first-run', '--ignore-certificate-errors', '--autoplay-policy=no-user-gesture-required', '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' });
+        '--no-first-run', '--ignore-certificate-errors', '--autoplay-policy=no-user-gesture-required', 'about:blank'], { stdio: 'ignore' });
     let page;
     const report = [];
     try {

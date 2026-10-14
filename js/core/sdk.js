@@ -1,34 +1,42 @@
 // sdk.js — обёртка над SDK Яндекс Игр. Остальной код игры вызывает только
-// R.sdk.*, поэтому если SDK нет (запуск с компьютера, двойной клик по
-// index.html), игра всё равно работает: включается "тестовый режим", где
-// реклама имитируется коротким окном с надписью "тестовая реклама".
+// R.sdk.*. Если игра открыта на компьютере разработчика (файл или localhost)
+// и SDK нет — включается "тестовый режим": реклама имитируется окном с надписью
+// "тестовая реклама". На любом другом адресе без SDK реклама просто недоступна
+// (никаких бесплатных наград и поддельной рекламы — правило 1.16).
 
 (function (root) {
     const R = root.R = root.R || {};
     const SDK = R.sdk = {
         ysdk: null,
         player: null,
-        mock: true,
+        mock: false,          // тестовый режим (только локально)
+        ready: false,         // SDK Яндекса успешно инициализирован
         lang: null,
-        adOpen: false
+        adOpen: false,
+        cloudOk: false        // облако прочитано успешно — только после этого в него пишем
     };
+
+    const host = (root.location && root.location.hostname) || '';
+    SDK.isLocal = !root.location || root.location.protocol === 'file:' ||
+        ['localhost', '127.0.0.1', '::1', ''].includes(host) || host.endsWith('.localhost');
 
     let lastInterstitial = 0;
     let gameplayRunning = false;
     let lastCloudCall = 0;
     let pendingCloud = null;
+    let pendingFlush = false;
     let cloudTimer = null;
 
-    // Подключаем /sdk.js динамически: на Яндексе он есть, локально — нет,
-    // и тогда просто ждём ошибку загрузки (или 3 секунды) и идём дальше
+    // /sdk.js: на Яндексе он есть. Если файла нет, браузер сразу сообщит об ошибке;
+    // ожидание с запасом — на случай медленного интернета или локального прокси
     function loadScript() {
         return new Promise(resolve => {
             if (root.YaGames) return resolve(true);
-            if (location.protocol === 'file:') return resolve(false);
+            if (root.location.protocol === 'file:') return resolve(false);
             const s = document.createElement('script');
             s.src = '/sdk.js';
             s.async = true;
-            const timer = setTimeout(() => resolve(!!root.YaGames), 3000);
+            const timer = setTimeout(() => resolve(!!root.YaGames), SDK.isLocal ? 10000 : 20000);
             s.onload = () => { clearTimeout(timer); resolve(!!root.YaGames); };
             s.onerror = () => { clearTimeout(timer); resolve(false); };
             document.head.appendChild(s);
@@ -37,68 +45,96 @@
 
     SDK.init = async () => {
         const ok = await loadScript();
-        if (!ok) {
-            console.info('SDK Яндекс Игр не найден — тестовый режим (это нормально при локальном запуске)');
-            return false;
-        }
-        try {
-            SDK.ysdk = await root.YaGames.init();
-            SDK.mock = false;
-            const lang = SDK.ysdk.environment && SDK.ysdk.environment.i18n && SDK.ysdk.environment.i18n.lang;
-            SDK.lang = lang;
-
-            // Платформа сама ставит игру на паузу (реклама, сворачивание вкладки)
-            if (typeof SDK.ysdk.on === 'function') {
-                SDK.ysdk.on('game_api_pause', () => R.emit('platformPause'));
-                SDK.ysdk.on('game_api_resume', () => R.emit('platformResume'));
-            }
+        if (ok) {
             try {
-                SDK.player = await SDK.ysdk.getPlayer();
+                SDK.ysdk = await root.YaGames.init();
+                SDK.ready = true;
+                const env = SDK.ysdk.environment;
+                SDK.lang = env && env.i18n && env.i18n.lang;
+                // Платформа сама ставит игру на паузу (реклама, сворачивание вкладки)
+                if (typeof SDK.ysdk.on === 'function') {
+                    SDK.ysdk.on('game_api_pause', () => R.emit('platformPause'));
+                    SDK.ysdk.on('game_api_resume', () => R.emit('platformResume'));
+                }
+                await SDK.loadPlayer();
+                return true;
             } catch (e) {
-                SDK.player = null;
+                console.warn('Не удалось инициализировать SDK Яндекс Игр:', e);
+                SDK.ysdk = null;
+                SDK.ready = false;
             }
-            return true;
+        }
+        SDK.mock = SDK.isLocal;
+        if (SDK.mock) console.info('SDK Яндекс Игр не найден — тестовый режим (это нормально при локальном запуске)');
+        return false;
+    };
+
+    SDK.loadPlayer = async () => {
+        try {
+            SDK.player = await SDK.ysdk.getPlayer();
         } catch (e) {
-            console.warn('Не удалось инициализировать SDK Яндекс Игр:', e);
-            SDK.mock = true;
-            return false;
+            SDK.player = null;
         }
     };
 
-    SDK.ready = () => {
+    // Уникальный id игрока Яндекса — чтобы на одном компьютере у разных
+    // аккаунтов не смешивались сады
+    SDK.playerId = () => {
+        try { return SDK.player && SDK.player.getUniqueID ? SDK.player.getUniqueID() : ''; } catch (e) { return ''; }
+    };
+
+    // Время сервера Яндекса (защита от перевода часов), иначе — время устройства
+    SDK.now = () => {
+        try { if (SDK.ysdk && SDK.ysdk.serverTime) return SDK.ysdk.serverTime(); } catch (e) { /* нет — берём локальное */ }
+        return Date.now();
+    };
+
+    SDK.ready_ = false;
+    SDK.gameReady = () => {
+        if (SDK.ready_) return;
+        SDK.ready_ = true;
         try {
-            if (SDK.ysdk && SDK.ysdk.features.LoadingAPI) SDK.ysdk.features.LoadingAPI.ready();
+            if (SDK.ysdk && SDK.ysdk.features && SDK.ysdk.features.LoadingAPI) SDK.ysdk.features.LoadingAPI.ready();
         } catch (e) { /* не критично */ }
     };
 
-    // Разметка геймплея: start — игрок играет, stop — пауза/меню/реклама.
+    // Разметка геймплея: start — игрок играет, stop — пауза/окно/реклама.
     // Вызываем только при смене состояния, без повторов
     SDK.setGameplay = (running) => {
         if (running === gameplayRunning) return;
         gameplayRunning = running;
         try {
-            const api = SDK.ysdk && SDK.ysdk.features.GameplayAPI;
+            const api = SDK.ysdk && SDK.ysdk.features && SDK.ysdk.features.GameplayAPI;
             if (api) running ? api.start() : api.stop();
         } catch (e) { /* не критично */ }
     };
 
     // ---------- Реклама ----------
+    // Реклама вообще возможна? (на Яндексе или в локальном тесте)
+    SDK.adsAvailable = () => SDK.ready || SDK.mock;
 
-    // Видео за награду. onReward вызывается ТОЛЬКО если игрок досмотрел
+    // Видео за награду. onReward вызывается ТОЛЬКО если игрок досмотрел.
+    // Результат: 'rewarded' | 'closed' (закрыл раньше) | 'error' | 'busy'
     SDK.showRewarded = (onReward) => new Promise(resolve => {
-        if (SDK.adOpen) return resolve(false);
-        let rewarded = false;
+        if (SDK.adOpen) return resolve('busy');
+        if (!SDK.adsAvailable()) return resolve('error');
+        let rewarded = false, done = false, errored = false;
         const finish = () => {
+            if (done) return;                 // onError + onClose не должны выдать награду дважды
+            done = true;
+            clearTimeout(watchdog);
             SDK.adOpen = false;
             R.emit('adClose');
             if (rewarded) onReward();
-            resolve(rewarded);
+            resolve(rewarded ? 'rewarded' : (errored ? 'error' : 'closed'));
         };
+        // Сторож: если SDK так и не ответил, через 90 секунд игра снова оживёт
+        const watchdog = setTimeout(() => { errored = !rewarded; finish(); }, 90000);
         SDK.adOpen = true;
         R.emit('adOpen');
 
         if (SDK.mock) {
-            mockAd(true, () => { rewarded = true; finish(); });
+            mockAd(() => { rewarded = true; finish(); });
             return;
         }
         try {
@@ -107,39 +143,48 @@
                     onOpen: () => { },
                     onRewarded: () => { rewarded = true; },
                     onClose: () => finish(),
-                    onError: () => finish()
+                    onError: () => { errored = true; finish(); }
                 }
             });
         } catch (e) {
+            errored = true;
             finish();
         }
     });
 
-    // Полноэкранная реклама — только в логических паузах и не чаще раза в 3 мин
+    // Полноэкранная реклама — только в логических паузах, не чаще раза в 3 мин
+    // и не в первые 5 минут игры: пусть игрок сначала влюбится в сад
     SDK.showInterstitial = () => new Promise(resolve => {
         const now = Date.now();
-        // Первые 5 минут игры — без полноэкранной рекламы: пусть игрок сначала влюбится в сад
         const played = R.game && R.game.S ? R.game.S.stats.playMs : 0;
-        if (SDK.adOpen || now - lastInterstitial < R.CFG.interstitialGap || played < 300000) return resolve(false);
+        if (SDK.adOpen || !SDK.ready || now - lastInterstitial < R.CFG.interstitialGap || played < 300000) return resolve(false);
         lastInterstitial = now;
-        if (SDK.mock) return resolve(false);   // локально не мешаем тестированию
+        let done = false;
+        const finish = (shown) => {
+            if (done) return;
+            done = true;
+            clearTimeout(watchdog);
+            SDK.adOpen = false;
+            R.emit('adClose');
+            resolve(shown);
+        };
+        const watchdog = setTimeout(() => finish(false), 90000);
         SDK.adOpen = true;
         R.emit('adOpen');
-        const done = (shown) => { SDK.adOpen = false; R.emit('adClose'); resolve(shown); };
         try {
             SDK.ysdk.adv.showFullscreenAdv({
                 callbacks: {
-                    onClose: (wasShown) => done(!!wasShown),
-                    onError: () => done(false)
+                    onClose: (wasShown) => finish(!!wasShown),
+                    onError: () => finish(false)
                 }
             });
         } catch (e) {
-            done(false);
+            finish(false);
         }
     });
 
     // Имитация рекламы для локального теста — понятно подписана, на Яндексе не появляется
-    function mockAd(rewardedType, onDone) {
+    function mockAd(onDone) {
         const el = document.createElement('div');
         el.className = 'mock-ad';
         el.innerHTML = '<div class="mock-ad-box"><div class="mock-ad-title">' + R.t('mock_ad_title') +
@@ -154,41 +199,48 @@
     }
 
     // ---------- Облачные сохранения ----------
+    // Возвращает { ok, data }: ok=false — облако прочитать не удалось
     SDK.loadCloud = async () => {
-        if (!SDK.player || typeof SDK.player.getData !== 'function') return null;
+        if (!SDK.player || typeof SDK.player.getData !== 'function') return { ok: false, data: null };
         try {
-            const data = await SDK.player.getData(['save']);
-            return data && data.save ? data.save : null;
+            const d = await SDK.player.getData(['save']);
+            SDK.cloudOk = true;
+            return { ok: true, data: d && d.save ? d.save : null };
         } catch (e) {
-            return null;
+            return { ok: false, data: null };
         }
     };
 
     // Лимит Яндекса — 100 запросов за 5 минут. Отправляем не чаще раза в 4 сек,
-    // лишние вызовы склеиваются в один (уходит последнее состояние)
+    // лишние вызовы склеиваются в один (уходит последнее состояние).
+    // Пока облако ни разу не прочиталось — не пишем, чтобы не затереть более новый сад
     SDK.saveCloud = (state, flush) => {
-        if (!SDK.player || typeof SDK.player.setData !== 'function') return;
+        if (!SDK.cloudOk || !SDK.player || typeof SDK.player.setData !== 'function') return;
         pendingCloud = JSON.parse(JSON.stringify(state));
+        pendingFlush = pendingFlush || !!flush;
         const send = () => {
             cloudTimer = null;
             if (!pendingCloud) return;
             lastCloudCall = Date.now();
-            const data = pendingCloud;
+            const data = pendingCloud, fl = pendingFlush;
             pendingCloud = null;
-            SDK.player.setData({ save: data }, !!flush).catch(() => { /* сеть могла пропасть — сохраним в следующий раз */ });
+            pendingFlush = false;
+            SDK.player.setData({ save: data }, fl).catch(() => { /* сеть могла пропасть — сохраним в следующий раз */ });
         };
         const wait = Math.max(0, 4000 - (Date.now() - lastCloudCall));
-        if (wait === 0) send();
-        else if (!cloudTimer) cloudTimer = setTimeout(send, wait);
+        if (wait === 0 || flush) {
+            if (cloudTimer) { clearTimeout(cloudTimer); cloudTimer = null; }
+            send();
+        } else if (!cloudTimer) cloudTimer = setTimeout(send, wait);
     };
 
     // ---------- Таблица лидеров ----------
-    SDK.LEADERBOARD = 'resonance';
+    SDK.LEADERBOARD = 'moneytree';
 
     SDK.leaderboardAvailable = () => !!(SDK.ysdk && SDK.ysdk.leaderboards);
 
     SDK.setScore = (score) => {
-        if (!SDK.leaderboardAvailable() || !SDK.player) return;
+        if (!SDK.leaderboardAvailable() || !SDK.isAuthorized()) return;
         try {
             const p = SDK.ysdk.leaderboards.setScore(SDK.LEADERBOARD, Math.floor(score));
             if (p && p.catch) p.catch(() => { });
@@ -204,13 +256,17 @@
         }
     };
 
-    SDK.isAuthorized = () => !!(SDK.player && typeof SDK.player.isAuthorized === 'function' && SDK.player.isAuthorized());
+    SDK.isAuthorized = () => {
+        try { return !!(SDK.player && typeof SDK.player.isAuthorized === 'function' && SDK.player.isAuthorized()); } catch (e) { return false; }
+    };
 
+    // Вход по кнопке в настройках. После входа заново читаем облако аккаунта
     SDK.openAuth = async () => {
         if (!SDK.ysdk || !SDK.ysdk.auth) return false;
         try {
             await SDK.ysdk.auth.openAuthDialog();
-            SDK.player = await SDK.ysdk.getPlayer();
+            await SDK.loadPlayer();
+            SDK.cloudOk = false;
             return true;
         } catch (e) {
             return false;
