@@ -17,7 +17,8 @@
     };
 
     const host = (root.location && root.location.hostname) || '';
-    SDK.isLocal = !root.location || root.location.protocol === 'file:' ||
+    // R_TEST_BUILD — сборка для проверки на телефоне (node tools/build-web.js): без SDK, с тестовой рекламой
+    SDK.isLocal = !!root.R_TEST_BUILD || !root.location || root.location.protocol === 'file:' ||
         ['localhost', '127.0.0.1', '::1', ''].includes(host) || host.endsWith('.localhost');
 
     // Яндекс сам показывает рекламу при запуске игры, поэтому отсчёт идёт с загрузки
@@ -33,7 +34,7 @@
     function loadScript() {
         return new Promise(resolve => {
             if (root.YaGames) return resolve(true);
-            if (root.location.protocol === 'file:') return resolve(false);
+            if (root.location.protocol === 'file:' || root.R_TEST_BUILD) return resolve(false);
             const s = document.createElement('script');
             s.src = '/sdk.js';
             s.async = true;

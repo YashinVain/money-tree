@@ -55,7 +55,7 @@
         musicBus.gain.value = 0;
         const musicLP = ctx.createBiquadFilter();
         musicLP.type = 'lowpass';
-        musicLP.frequency.value = 2200;
+        musicLP.frequency.value = 5000;
         musicBus.connect(musicLP);
         musicLP.connect(master);
 
@@ -254,33 +254,106 @@
     };
 
     // ---------- Музыка ----------
-    // Прогрессия из 4 аккордов (ступени: I – vi – IV – V), каждый ~6 секунд
-    const PROG = [[0, 4, 7, 11], [9, 12, 16, 19], [5, 9, 12, 16], [7, 11, 14, 17]];
-    const STEP_MS = 750;
+    // Весёлая «музыкальная шкатулка» для сада: мажор, ровный ритм ~94 удара в минуту,
+    // мягкий бас, перебор аккорда и простая мелодия. Мелодия сочиняется заново время
+    // от времени, но фразы повторяются (A A B A) — так она звучит как песенка,
+    // а не как случайные ноты. Ноты планируются заранее по часам AudioContext,
+    // поэтому ритм не «плывёт» даже на медленных телефонах.
+    const STEP_S = 0.32;                       // восьмая нота
+    const CH = { I: [0, 4, 7], ii: [2, 5, 9], IV: [5, 9, 12], V: [7, 11, 14], vi: [9, 12, 16] };
+    const PROGS = [['I', 'IV', 'I', 'V'], ['I', 'vi', 'IV', 'V'], ['IV', 'I', 'ii', 'V'], ['I', 'V', 'vi', 'IV']];
+    const PENTA_MAJ = [0, 2, 4, 7, 9];
+    const RHYTHMS = [[0, 2, 4, 6], [0, 3, 4, 6], [0, 2, 3, 4], [0, 4, 6], [0, 2, 4, 5, 6], [0, 6]];
+    const ORDER = ['A', 'A', 'B', 'A'];
+    let phrases = {}, cycle = 0, nextTime = 0;
 
-    function musicTick() {
-        if (!A.ctx || !A.musicOn || A.paused) return;
-        const chord = PROG[Math.floor(musicStep / 8) % PROG.length];
-        const beat = musicStep % 8;
+    // Тональность держим в одном регистре: сдвиг -5..+6 полутонов
+    const keyOff = () => (musicKey > 6 ? musicKey - 12 : musicKey);
 
-        if (beat === 0) {
-            // Пэд: мягко нарастающий аккорд
-            chord.forEach((s, i) => {
-                tone(midiToHz(52 + musicKey + s), {
-                    type: i % 2 ? 'triangle' : 'sine', peak: 0.05, attack: 1.6, decay: 4.6,
-                    detune: (i - 1.5) * 6, bus: musicBus, cutoff: 1400
-                });
+    // Мелодия на 4 такта: опорные доли — звуки аккорда, между ними — шаги по пентатонике
+    function makePhrase(prog) {
+        const notes = new Array(32).fill(0);
+        const pool = [];
+        for (let m = 69; m <= 86; m++) if (PENTA_MAJ.includes(((m - 60) % 12 + 12) % 12)) pool.push(m);
+        let cur = 76;
+        prog.forEach((name, bar) => {
+            const chord = CH[name].map(s => s % 12);
+            const last = bar === 3;
+            const rhythm = last ? [0, 2] : RHYTHMS[Math.floor(Math.random() * RHYTHMS.length)];
+            rhythm.forEach(step => {
+                const strong = step === 0 || step === 4;
+                let cands = pool.filter(m => Math.abs(m - cur) <= (strong ? 5 : 4) && m !== cur);
+                if (strong) cands = cands.filter(m => chord.includes((m - 60) % 12));
+                if (!cands.length) cands = pool.filter(m => Math.abs(m - cur) <= 7);
+                cur = cands[Math.floor(Math.random() * cands.length)];
+                notes[bar * 8 + step] = cur;
             });
-            tone(midiToHz(40 + musicKey + chord[0]), { type: 'sine', peak: 0.07, attack: 0.6, decay: 5, bus: musicBus });
+        });
+        return notes;
+    }
+
+    function newSong() {
+        const prog = PROGS[Math.floor(Math.random() * PROGS.length)];
+        const progB = PROGS[Math.floor(Math.random() * PROGS.length)];
+        phrases = { A: { prog, notes: makePhrase(prog) }, B: { prog: progB, notes: makePhrase(progB) } };
+    }
+
+    // Нежный «колокольчик шкатулки»: основной тон и тихий обертон
+    function musicBox(midi, at, peak, decay) {
+        const f = midiToHz(midi + keyOff());
+        tone(f, { type: 'sine', peak, attack: 0.006, decay, at, bus: musicBus, send: 0.25 });
+        tone(f * 3, { type: 'sine', peak: peak * 0.12, attack: 0.004, decay: decay * 0.4, at, bus: musicBus });
+    }
+
+    function playStep(step, at) {
+        if (!phrases.A) newSong();
+        const pIndex = Math.floor(step / 32) % ORDER.length;
+        const ph = phrases[ORDER[pIndex]];
+        const inPhrase = step % 32;
+        const bar = Math.floor(inPhrase / 8), beat = inPhrase % 8;
+        const chord = CH[ph.prog[bar]];
+        const k = keyOff();
+        // Каждый третий круг — «передышка»: без мелодии, только перебор и бас
+        const rest = cycle % 3 === 2;
+
+        // Бас: на 1 и 3 долю — основной тон и квинта
+        if (beat === 0 || beat === 4) {
+            const b = 48 + k + chord[0] + (beat === 4 ? 7 : 0);
+            tone(midiToHz(b), { type: 'triangle', peak: 0.075, attack: 0.012, decay: 0.55, at, bus: musicBus, cutoff: 700 });
         }
-        // Тихие "звёздные" ноты — не каждый шаг, чтобы музыка дышала
-        if (Math.random() < 0.42) {
-            const note = chord[Math.floor(Math.random() * chord.length)] + (Math.random() < 0.5 ? 12 : 24);
-            const f = midiToHz(60 + musicKey + note);
-            const t0 = Math.random() * 0.1;
-            tone(f, { type: 'sine', peak: 0.03, attack: 0.01, decay: 1.4, at: t0, bus: musicBus });
+        // Тёплая подложка — очень тихо, без расстройки, чтобы не было «тревожного» гула
+        if (beat === 0) {
+            chord.forEach(s => tone(midiToHz(60 + k + s), { type: 'sine', peak: 0.012, attack: 0.25, decay: 2.2, at, bus: musicBus }));
         }
-        musicStep++;
+        // Перебор аккорда (как у шкатулки): низ — верх — середина — верх
+        if (beat % 2 === 0 || (ORDER[pIndex] === 'B' && !rest)) {
+            const order = [0, 2, 1, 2];
+            const s = chord[order[(beat >> 1) % 4]];
+            tone(midiToHz(64 + k + s), { type: 'triangle', peak: 0.022, attack: 0.005, decay: 0.3, at, bus: musicBus, cutoff: 1800 });
+        }
+        // Мелодия
+        if (!rest) {
+            const m = ph.notes[inPhrase];
+            if (m) musicBox(m, at, 0.034, beat === 0 && bar === 3 ? 1.1 : 0.55);
+        }
+        // Конец круга A A B A: иногда новая часть B, реже — совсем новая песенка
+        if (step % 128 === 127) {
+            cycle++;
+            if (cycle % 4 === 0) newSong();
+            else phrases.B = (() => { const p = PROGS[Math.floor(Math.random() * PROGS.length)]; return { prog: p, notes: makePhrase(p) }; })();
+        }
+    }
+
+    // Планировщик: каждые 100 мс ставит в очередь ноты на ближайшие 0,3 с
+    function musicTick() {
+        if (!A.ctx || !A.musicOn || A.paused || A.ctx.state !== 'running') return;
+        const now = A.ctx.currentTime;
+        if (nextTime < now + 0.02) nextTime = now + 0.06;   // после паузы — без «догоняющей» пачки нот
+        while (nextTime < now + 0.3) {
+            playStep(musicStep, nextTime - now);
+            nextTime += STEP_S;
+            musicStep++;
+        }
     }
 
     A.applyMusic = () => {
@@ -289,7 +362,7 @@
         musicBus.gain.cancelScheduledValues(t);
         musicBus.gain.setTargetAtTime(A.musicOn ? 0.55 : 0, t, 0.8);
         if (A.musicOn && !musicTimer) {
-            musicTimer = setInterval(musicTick, STEP_MS);
+            musicTimer = setInterval(musicTick, 100);
             musicTick();
         } else if (!A.musicOn && musicTimer) {
             clearInterval(musicTimer);
