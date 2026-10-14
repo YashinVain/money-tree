@@ -20,7 +20,8 @@
     SDK.isLocal = !root.location || root.location.protocol === 'file:' ||
         ['localhost', '127.0.0.1', '::1', ''].includes(host) || host.endsWith('.localhost');
 
-    let lastInterstitial = 0;
+    // Яндекс сам показывает рекламу при запуске игры, поэтому отсчёт идёт с загрузки
+    let lastInterstitial = Date.now();
     let gameplayRunning = false;
     let lastCloudCall = 0;
     let pendingCloud = null;
@@ -57,6 +58,7 @@
                     SDK.ysdk.on('game_api_resume', () => R.emit('platformResume'));
                 }
                 await SDK.loadPlayer();
+                SDK.checkLeaderboard();
                 return true;
             } catch (e) {
                 console.warn('Не удалось инициализировать SDK Яндекс Игр:', e);
@@ -125,11 +127,12 @@
             clearTimeout(watchdog);
             SDK.adOpen = false;
             R.emit('adClose');
+            lastInterstitial = Date.now();
             if (rewarded) onReward();
             resolve(rewarded ? 'rewarded' : (errored ? 'error' : 'closed'));
         };
         // Сторож: если SDK так и не ответил, через 90 секунд игра снова оживёт
-        const watchdog = setTimeout(() => { errored = !rewarded; finish(); }, 90000);
+        const watchdog = setTimeout(() => { errored = !rewarded; finish(); }, 300000);
         SDK.adOpen = true;
         R.emit('adOpen');
 
@@ -168,7 +171,7 @@
             R.emit('adClose');
             resolve(shown);
         };
-        const watchdog = setTimeout(() => finish(false), 90000);
+        const watchdog = setTimeout(() => finish(false), 300000);
         SDK.adOpen = true;
         R.emit('adOpen');
         try {
@@ -227,8 +230,8 @@
             pendingFlush = false;
             SDK.player.setData({ save: data }, fl).catch(() => { /* сеть могла пропасть — сохраним в следующий раз */ });
         };
-        const wait = Math.max(0, 4000 - (Date.now() - lastCloudCall));
-        if (wait === 0 || flush) {
+        const wait = Math.max(0, 3500 - (Date.now() - lastCloudCall));
+        if (wait === 0 || (flush && Date.now() - lastCloudCall > 1000)) {
             if (cloudTimer) { clearTimeout(cloudTimer); cloudTimer = null; }
             send();
         } else if (!cloudTimer) cloudTimer = setTimeout(send, wait);
@@ -237,10 +240,19 @@
     // ---------- Таблица лидеров ----------
     SDK.LEADERBOARD = 'moneytree';
 
-    SDK.leaderboardAvailable = () => !!(SDK.ysdk && SDK.ysdk.leaderboards);
+    SDK.lbReady = false;
+    SDK.leaderboardAvailable = () => SDK.lbReady;
+    SDK.checkLeaderboard = async () => {
+        try {
+            if (SDK.ysdk && SDK.ysdk.leaderboards && SDK.ysdk.leaderboards.getDescription) {
+                await SDK.ysdk.leaderboards.getDescription(SDK.LEADERBOARD);
+                SDK.lbReady = true;
+            }
+        } catch (e) { SDK.lbReady = false; }
+    };
 
     SDK.setScore = (score) => {
-        if (!SDK.leaderboardAvailable() || !SDK.isAuthorized()) return;
+        if (!SDK.ysdk || !SDK.ysdk.leaderboards || !SDK.isAuthorized()) return;
         try {
             const p = SDK.ysdk.leaderboards.setScore(SDK.LEADERBOARD, Math.floor(score));
             if (p && p.catch) p.catch(() => { });

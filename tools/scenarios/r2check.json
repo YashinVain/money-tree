@@ -1,0 +1,29 @@
+{
+  "out": "out",
+  "steps": [
+    { "size": [390, 844, 2, true] },
+    { "open": "http://127.0.0.1:8934/index.html", "wait": 1500 },
+    { "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=100; s.bestLevel=120; s.coins=1e12; s.helpers=[60,50,50,50,40,60]; s.flowers=[1,1,1,1,1,1,0,0]; s.charge=R.CFG.chargeMax; s.freeChestAt=0; s.hints={tap:1,upgrade:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.gift={lastDay:R.util.dayKey(Date.now()),streak:1}; s.stats.playMs=1e6; s.savedAt=Date.now(); localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();", "sleep": 1500 },
+    { "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click();", "sleep": 2000, "shot": "c01-390-main.png" },
+    { "js": "document.querySelector('.tab[data-tab=helpers]').click();", "sleep": 800, "shot": "c02-390-helpers.png" },
+    { "js": "document.querySelector('.tab[data-tab=helpers]').click();", "sleep": 600 },
+    { "size": [360, 640, 2, true] },
+    { "js": "window.dispatchEvent(new Event('resize'));", "sleep": 1200, "shot": "c03-360-main.png" },
+    { "js": "document.querySelector('.tab[data-tab=bonus]').click();", "sleep": 800, "shot": "c04-360-bonus.png" },
+    { "js": "document.querySelector('.tab[data-tab=bonus]').click();", "sleep": 600 },
+    { "size": [568, 320, 2, true] },
+    { "js": "window.dispatchEvent(new Event('resize'));", "sleep": 1200, "shot": "c05-568-main.png" },
+    { "js": "document.querySelector('.tab[data-tab=tree]').click();", "sleep": 800, "shot": "c06-568-tree.png" },
+    { "js": "R.emit('stage', {stage: 6, newFlowers: [6], stageChanged: true});", "sleep": 1200, "shot": "c07-568-modal.png" },
+    { "js": "document.querySelectorAll('.modal [data-a]').forEach(b=>{ if(b.dataset.a==='stageTake'||b.dataset.a==='close') b.click(); });", "sleep": 800 },
+    { "size": [740, 360, 2, true] },
+    { "js": "window.dispatchEvent(new Event('resize'));", "sleep": 1200, "shot": "c08-740-main.png" },
+    { "size": [768, 1024, 2, true] },
+    { "js": "window.dispatchEvent(new Event('resize'));", "sleep": 1200, "shot": "c09-768-main.png" },
+    { "size": [1280, 720, 1, false] },
+    { "js": "window.dispatchEvent(new Event('resize'));", "sleep": 1200, "shot": "c10-1280-main.png" },
+    { "size": [1920, 1080, 1, false] },
+    { "js": "window.dispatchEvent(new Event('resize')); R.game.release && R.game.release();", "sleep": 1500, "shot": "c11-1920-buff.png" },
+    { "name": "overflow", "js": "const bad=[]; document.querySelectorAll('#app *').forEach(e=>{ if(!e.offsetParent) return; const r=e.getBoundingClientRect(); if(r.width>0 && (r.right>innerWidth+1||r.left<-1||r.bottom>innerHeight+1)) bad.push(e.id||e.className); }); return bad.slice(0,10);" }
+  ]
+}

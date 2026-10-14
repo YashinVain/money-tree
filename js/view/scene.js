@@ -135,10 +135,11 @@
     // относительно опорной линии земли; при выводе холст просто сдвигается.
     // Так фон не перерисовывается каждый кадр, пока выезжает панель
     let hillsRef = 0, hillsU = 1;
+    let frontCanvas = null;
     function drawHills(pal) {
         const u = Math.round(uScale() * 10) / 10;
         const decorN = R.decor.unlocked(G.S.bestLevel).length;
-        const key = W + 'x' + H + ':' + Math.round(tree.x) + ':' + u + ':' + decorN + ':' + pal.join('');
+        const key = W + 'x' + H + ':' + Math.round(tree.x) + ':' + Math.round(view.w) + ':' + u + ':' + decorN + ':' + pal.join('');
         if (key === hillsKey && hillsCanvas) return;
         hillsKey = key;
         hillsU = u;
@@ -146,7 +147,7 @@
         const CH = H * 1.6;
         hillsCanvas.width = Math.ceil(W * dpr);
         hillsCanvas.height = Math.ceil(CH * dpr);
-        const c = hillsCanvas.getContext('2d');
+        let c = hillsCanvas.getContext('2d');
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
         c.clearRect(0, 0, W, CH);
         const gy = hillsRef = H * 0.62;
@@ -169,6 +170,21 @@
         };
         layer(gy - 70 * u, 70 * u, 0.006 / u, 1.3, pal[2], -0.05);
         layer(gy - 25 * u, 55 * u, 0.009 / u, 4.1, pal[3], -0.1);
+        // Дальние украшения (мельница, домик, замок) — на холмах, за радугой
+        R.decor.unlocked(G.S.bestLevel).forEach(d => {
+            if (R.decor.animated[d.id] || d.depth < 2) return;
+            const pos = decorPos(d, gy, u);
+            R.decor.draw(c, d.id, pos.x, pos.y, pos.k, 0);
+        });
+        // Дальше рисуем луг — в отдельный холст, он будет перед радугой
+        const back = c;
+        frontCanvas = frontCanvas || document.createElement('canvas');
+        frontCanvas.width = hillsCanvas.width;
+        frontCanvas.height = hillsCanvas.height;
+        c = frontCanvas.getContext('2d');
+        c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        c.clearRect(0, 0, W, CH);
+        void back;
         // Луг — широкий холм, на котором стоит дерево
         c.beginPath();
         c.moveTo(0, H);
@@ -212,9 +228,9 @@
                 c.fill();
             }
         }
-        // Неподвижные украшения сада (дальние — меньше и выше, на холмах)
+        // Ближние неподвижные украшения — на лугу, перед радугой
         R.decor.unlocked(G.S.bestLevel).forEach(d => {
-            if (R.decor.animated[d.id]) return;
+            if (R.decor.animated[d.id] || d.depth >= 2) return;
             const pos = decorPos(d, gy, u);
             R.decor.draw(c, d.id, pos.x, pos.y, pos.k, 0);
         });
@@ -223,9 +239,9 @@
 
     // Где стоит украшение: depth 0 — на лугу, 1 — ближний холм, 2 — дальний, 3 — в небе
     function decorPos(d, gy, u) {
-        const scale = [1, 0.75, 0.55, 0.7][d.depth];
-        const yOff = [10, -14, -48, -150][d.depth];
-        const x = U.clamp(tree.x + d.dx * W, 30 * u, W - 30 * u);
+        const scale = [1.3, 1.05, 0.8, 0.85][d.depth];
+        const yOff = [14, -10, -46, -150][d.depth];
+        const x = U.clamp(tree.x + d.dx * view.w * 1.05, view.x + 44 * u, view.x + view.w - 44 * u);
         return { x, y: gy + yOff * u, k: scale * u };
     }
 
@@ -299,7 +315,7 @@
 
         if (a.id === 'bee') {
             // Пчёлка летает восьмёркой вокруг кроны
-            const ph = time * (0.55 + a.n * 0.08) + a.seed;
+            const ph = time * (0.55 + a.n * 0.08) + a.seed + a.n * 1.9;
             const nx = crownX + Math.sin(ph) * Math.min(crownR * 1.15 + 20 * u, view.w * 0.4);
             const ny = Math.max(view.y + 26 * u, crownY + Math.sin(ph * 1.7) * crownR * 0.55 - 10 * u);
             a.dir = nx >= a.x ? 1 : -1;
@@ -309,7 +325,10 @@
             const side = a.id === 'hedgehog' ? -1 : 1;
             const minX = tree.x + side * (60 * u + crownR * 0.2), maxX = tree.x + side * half;
             const lo = Math.max(edgeL, Math.min(minX, maxX)), hi = Math.min(edgeR, Math.max(minX, maxX));
-            if (a.x < lo - 5 || a.x > hi + 5) a.x = U.lerp(lo, hi, 0.15 + a.n * 0.33 + Math.random() * 0.1);
+            // У каждого зверька своя «дорожка» — не слипаются в кучку
+            const lane = (a.n % 3) / 3;
+            const llo = U.lerp(lo, hi, lane), lhi = U.lerp(lo, hi, Math.min(1, lane + 0.45));
+            if (a.x < lo - 5 || a.x > hi + 5) a.x = U.lerp(llo, lhi, 0.5);
             a.stateT -= dt;
             if (a.id === 'hedgehog') {
                 // То идёт, то останавливается понюхать воздух
@@ -319,8 +338,8 @@
                     if (a.state === 'walk' && Math.random() < 0.4) a.dir *= -1;
                 }
                 if (a.state === 'walk') a.x += a.dir * 24 * u * dt;
-                if (a.x < lo) { a.x = lo; a.dir = 1; }
-                if (a.x > hi) { a.x = hi; a.dir = -1; }
+                if (a.x < llo) { a.x = llo; a.dir = 1; }
+                if (a.x > lhi) { a.x = lhi; a.dir = -1; }
                 a.y = gy + (8 + a.n * 10) * u;
             } else {
                 // Кролик: присел — прыжок — приземлился — посидел
@@ -334,8 +353,8 @@
                     a.hopT = U.rand(0.9, 2.6);
                     if (Math.random() < 0.3) a.dir *= -1;
                 }
-                if (a.x < lo) { a.x = lo; a.dir = 1; }
-                if (a.x > hi) { a.x = hi; a.dir = -1; }
+                if (a.x < llo) { a.x = llo; a.dir = 1; }
+                if (a.x > lhi) { a.x = lhi; a.dir = -1; }
                 const air = a.hop > 0.15 && a.hop < 0.85 ? Math.sin((a.hop - 0.15) / 0.7 * Math.PI) : 0;
                 a.y = gy + (12 + a.n * 10) * u - air * 28 * u;
             }
@@ -393,19 +412,38 @@
         }
     }
 
+    // Каждый зверёк рисуется в свой маленький холст не чаще 20 раз в секунду,
+    // а на экран выводится каждый кадр — движение по саду плавное, а рисования
+    // векторных фигур в 3 раза меньше (важно для слабых телефонов)
+    const ACTOR_FPS = 20;
     function drawActor(a) {
         const u = uScale();
         const size = { bee: 30, hedgehog: 38, squirrel: 38, bunny: 38, owl: 42, dragon: 46 }[a.id] * u;
+        const box = Math.ceil(size * 2.2);
+        const px = Math.ceil(box * dpr);
+        if (!a.cv || a.cv.width !== px) {
+            a.cv = document.createElement('canvas');
+            a.cv.width = a.cv.height = px;
+            a.cvAt = -1;
+        }
+        if (time - a.cvAt >= 1 / ACTOR_FPS || a.cvAt < 0) {
+            a.cvAt = time;
+            const c = a.cv.getContext('2d');
+            c.setTransform(1, 0, 0, 1, 0, 0);
+            c.clearRect(0, 0, px, px);
+            c.setTransform(dpr, 0, 0, dpr, box / 2 * dpr, box / 2 * dpr);
+            R.critters.draw(a.id, c, size, time + a.phase, a.n, {
+                moving: a.state === 'walk', hop: a.hop, flap: a.flap ? Math.sin(a.flap * Math.PI * 3) * 0.5 + 0.5 : 0,
+                happy: a.happy, carry: true
+            });
+        }
         ctx.save();
         // Радостный подскок после покупки
         const jumpY = a.happy > 0 ? -Math.abs(Math.sin(a.happy * Math.PI * 3)) * 14 * u * a.happy : 0;
         ctx.translate(a.x, a.y + jumpY);
         const pop = U.easeOutBack(a.appear);
         ctx.scale(a.dir * pop, pop);
-        R.critters.draw(a.id, ctx, size, time + a.phase, a.n, {
-            moving: a.state === 'walk', hop: a.hop, flap: a.flap ? Math.sin(a.flap * Math.PI * 3) * 0.5 + 0.5 : 0,
-            happy: a.happy, carry: true
-        });
+        ctx.drawImage(a.cv, -box / 2, -box / 2, box, box);
         ctx.restore();
     }
 
@@ -473,9 +511,9 @@
             x = cx + U.rand(-r, r) * 0.7;
             y = cy + U.rand(-r, r) * 0.4;
         }
-        const n = res.crit ? 6 : (res.source === 'auto' ? 1 : 2);
+        const n = res.crit ? 8 : (res.source === 'auto' ? 1 : 4);
         for (let i = 0; i < n; i++) {
-            add({ type: 'coin', x, y, vx: U.rand(-120, 120) * u, vy: U.rand(-330, -200) * u, g: 900 * u, life: 0.85, size: (res.crit ? 13 : 10) * u, spin: Math.random(), vs: U.rand(1.5, 3) });
+            add({ type: 'coin', x, y, vx: U.rand(-150, 150) * u, vy: U.rand(-360, -210) * u, g: 900 * u, life: 0.85, size: (res.crit ? 15 : 12) * u, spin: Math.random(), vs: U.rand(1.5, 3) });
         }
         if (G.stageIndex() >= 2 && Math.random() < (res.source === 'auto' ? 0.3 : 0.7)) {
             const r = info ? info.crownR * tree.k : 40;
@@ -496,7 +534,7 @@
                 if (!res.crit) comboText = p;
             }
             if (res.crit) {
-                add({ type: 'text', x, y: y - 48 * u, vy: -50 * u, life: 1.0, size: 22 * u, text: R.t('crit'), color: '#ffcf3d', crit: true });
+                add({ type: 'text', x, y: y - 62 * u, vy: -50 * u, life: 1.1, size: Math.max(18, 20 * u), text: R.t('crit'), color: '#ffcf3d', crit: true });
                 burst(x, y, 14, '#ffe680', 260);
             }
         }
@@ -628,11 +666,76 @@
 
     // ---------- Тап ----------
     // Возвращает, во что попал тап: бабочка, дерево (вся область сада) или ничего
+    // Корзинка урожая у дерева, когда готов бесплатный подарок
+    function basketPos() {
+        const u = uScale();
+        const r = tree.info ? tree.info.crownR * tree.k : 40;
+        return { x: tree.x + Math.max(56 * u, r * 0.7), y: groundY() + 2 * u, s: 34 * u };
+    }
+    function drawBasket() {
+        if (!G.freeChestReady() || !SC.basketEnabled) return;
+        const b = basketPos();
+        const bob = Math.abs(Math.sin(time * 3)) * 4;
+        ctx.save();
+        ctx.translate(b.x, b.y - bob);
+        const glow = ctx.createRadialGradient(0, -b.s * 0.4, 0, 0, -b.s * 0.4, b.s * 1.4);
+        glow.addColorStop(0, 'rgba(255,240,150,0.6)');
+        glow.addColorStop(1, 'rgba(255,240,150,0)');
+        ctx.fillStyle = glow;
+        P.circle(ctx, 0, -b.s * 0.4, b.s * 1.4);
+        ctx.fill();
+        const k = b.s / 40;
+        ctx.strokeStyle = '#8a5a2a';
+        ctx.lineWidth = 3 * k;
+        ctx.beginPath();
+        ctx.arc(0, -18 * k, 16 * k, Math.PI, 0);
+        ctx.stroke();
+        [[-8, -22, '#ff5a5a'], [3, -25, '#ffd23f'], [11, -21, '#ff5a5a']].forEach(([ax, ay, col]) => {
+            P.circle(ctx, ax * k, ay * k, 7 * k);
+            P.fillStroke(ctx, P.ball(ctx, ax * k, ay * k, 7 * k, col), '#7a1f1f', 1.4 * k);
+        });
+        ctx.beginPath();
+        ctx.moveTo(-20 * k, -18 * k); ctx.lineTo(20 * k, -18 * k); ctx.lineTo(15 * k, 0); ctx.lineTo(-15 * k, 0);
+        ctx.closePath();
+        P.fillStroke(ctx, P.linear(ctx, 0, -18 * k, 0, 0, ['#e8b878', '#c08a4a']), '#6e4424', 2 * k);
+        ctx.strokeStyle = 'rgba(110,68,36,0.5)';
+        ctx.lineWidth = 1.4 * k;
+        [-9, 0, 9].forEach(xx => { ctx.beginPath(); ctx.moveTo(xx * k, -17 * k); ctx.lineTo(xx * 0.8 * k, -1 * k); ctx.stroke(); });
+        ctx.restore();
+        if (Math.random() < 0.08) add({ type: 'spark', x: b.x + U.rand(-20, 20), y: b.y - b.s * 0.8, vx: 0, vy: -20, life: 0.8, size: 4 * uScale(), color: '#fff6b0' });
+    }
+    SC.basketEnabled = true;
+    SC.basketPoint = () => { const b = basketPos(); return { x: b.x, y: b.y - b.s * 0.4, top: b.y - b.s, bottom: b.y }; };
+
+    // Зверёк под пальцем (кроме тех, кто летает высоко)
+    function actorAt(x, y) {
+        const u = uScale();
+        let best = null, bd = 1e9;
+        actors.forEach(a => {
+            const size = (a.id === 'bee' ? 30 : 40) * u;
+            const d = Math.hypot(x - a.x, y - (a.y - size * 0.1));
+            if (d < size * 0.75 && d < bd) { bd = d; best = a; }
+        });
+        return best;
+    }
+
+    // Зверёк радуется тапу: подпрыгивает, искрится
+    SC.pokeActor = (a) => {
+        a.happy = 1;
+        burst(a.x, a.y - 10 * uScale(), 10, CFG.helpers[a.i].color, 180);
+    };
+
     SC.hit = (x, y) => {
         if (comet && !comet.caught) {
             const d = Math.hypot(x - comet.x, y - comet.y);
             if (d < comet.size * 1.6 + 18) return 'comet';
         }
+        if (G.freeChestReady() && SC.basketEnabled) {
+            const b = basketPos();
+            if (Math.hypot(x - b.x, y - (b.y - b.s * 0.4)) < b.s * 1.1) return 'basket';
+        }
+        const a = actorAt(x, y);
+        if (a) { SC.lastActor = a; return 'critter'; }
         if (x >= view.x && x <= view.x + view.w && y >= view.y && y <= view.y + view.h + 30) return 'tree';
         return null;
     };
@@ -669,8 +772,20 @@
         if (coinPos) coinTarget = coinPos;
     };
 
+    // На слабых устройствах плотность пикселей снижается автоматически
+    let maxDpr = 2, slowTime = 0;
+    function watchQuality(dt) {
+        if (dt <= 0 || dt > 0.25) return;
+        slowTime = dt > 0.034 ? slowTime + dt : Math.max(0, slowTime - dt * 0.5);
+        if (slowTime > 2.5 && dpr > 1) {
+            slowTime = 0;
+            maxDpr = Math.max(1, dpr - 0.5);
+            SC.resize();
+        }
+    }
+
     SC.resize = () => {
-        dpr = Math.min(2, root.devicePixelRatio || 1);
+        dpr = Math.min(maxDpr, root.devicePixelRatio || 1);
         W = root.innerWidth;
         H = root.innerHeight;
         cv.width = Math.round(W * dpr);
@@ -679,6 +794,9 @@
         cv.style.height = H + 'px';
         hillsKey = '';
         spriteKey = '';
+        skyGradKey = '';
+        coinFrames = null;
+        actors.forEach(a => { a.cv = null; });
         makeClouds();
     };
 
@@ -695,6 +813,7 @@
     SC.frame = (dt) => {
         time += dt;
         frameDt = dt;
+        watchQuality(dt);
         // Плавно подвинуть область сада к цели (открытие панели и т.п.)
         const a = 1 - Math.pow(0.0015, dt);
         view.x = U.lerp(view.x, view.tx, a);
@@ -931,6 +1050,20 @@
         }
     }
 
+    const flowerCache = {};
+    function flowerSprite(id, size) {
+        const key = id + ':' + Math.round(size) + ':' + dpr;
+        if (flowerCache[key]) return flowerCache[key];
+        const w = size * 1.3, h = size * 1.15;
+        const cv = document.createElement('canvas');
+        cv.width = Math.ceil(w * dpr);
+        cv.height = Math.ceil(h * dpr);
+        const c = cv.getContext('2d');
+        c.setTransform(dpr, 0, 0, dpr, w / 2 * dpr, (h - size * 0.04) * dpr);
+        R.flowers.draw(id, c, size, 0);
+        return (flowerCache[key] = { cv, w, h });
+    }
+
     function drawFlowers() {
         const u = uScale();
         CFG.flowers.forEach((f, i) => {
@@ -938,10 +1071,12 @@
             const pos = flowerPos(i);
             if (flowerPop[i] !== undefined && flowerPop[i] < 1) flowerPop[i] = Math.min(1, flowerPop[i] + frameDt);
             const pop = flowerPop[i] === undefined ? 1 : U.easeOutBack(flowerPop[i]);
+            const img = flowerSprite(f.id, 58 * u);
             ctx.save();
             ctx.translate(pos.x, pos.y);
+            ctx.rotate(Math.sin(time * 1.3 + i) * 0.04);
             ctx.scale(pop, pop);
-            R.flowers.draw(f.id, ctx, 58 * u, time + i);
+            ctx.drawImage(img.cv, -img.w / 2, -img.h, img.w, img.h);
             ctx.restore();
         });
     }
@@ -1019,8 +1154,10 @@
         drawSky(pal);
         drawHills(pal);
         ctx.drawImage(hillsCanvas, 0, groundY() - hillsRef, W, H * 1.6);
-        drawAnimatedDecor();
         drawRainbow();
+        if (frontCanvas) ctx.drawImage(frontCanvas, 0, groundY() - hillsRef, W, H * 1.6);
+        drawAnimatedDecor();
+        drawBasket();
         // Дракончик летает за деревом
         actors.filter(a => a.id === 'dragon').forEach(drawActor);
         drawFlowers();

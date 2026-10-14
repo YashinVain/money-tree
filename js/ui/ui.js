@@ -29,6 +29,22 @@
         if (!UI.pics[key]) UI.pics[key] = R.scene.portrait(kind, id, 64);
         return UI.pics[key];
     };
+    // Портреты рисуются заранее, по одному за раз, пока игра простаивает —
+    // чтобы первое открытие вкладки «Звери» не подтормаживало на телефоне
+    UI.prewarm = () => {
+        const CFG = R.CFG;
+        const list = [['coin', 0], ['seed', 0], ['butterfly', 0]];
+        CFG.helpers.forEach(h => list.push(['helper', h.id]));
+        CFG.flowers.forEach(f => list.push(['flower', f.id]));
+        CFG.stages.forEach((st, i) => list.push(['stage', i]));
+        const idle = root.requestIdleCallback || ((fn) => setTimeout(fn, 60));
+        const step = () => {
+            if (!list.length) return;
+            if (!UI.hasModal()) { const [k, id] = list.shift(); UI.pic(k, id); }
+            idle(step, { timeout: 400 });
+        };
+        idle(step, { timeout: 400 });
+    };
     UI.img = (kind, id, cls = '') => `<img class="${cls}" src="${UI.pic(kind, id)}" alt="">`;
     UI.coinImg = () => UI.img('coin', 0);
     UI.seedImg = () => UI.img('seed', 0);
@@ -47,9 +63,10 @@
         const s = landscape ? U.clamp(Math.min(w / 1280, h / 760), 0.8, 1.25) : U.clamp(Math.min(w / 420, h / 820), 0.82, 1.2);
         const css = document.documentElement.style;
         css.setProperty('--s', s.toFixed(3));
-        const panelW = Math.round(U.clamp(w * 0.36, Math.min(340, w * 0.52), 480));
+        const panelW = Math.round(U.clamp(w * 0.36, Math.min(340, w * 0.45), 480));
         css.setProperty('--panel-w', panelW + 'px');
-        const tabbar = h < 520 ? 60 : Math.round(Math.max(66, 74 * Math.min(1.1, s)));
+        // Вкладке нужно место под значок и подпись: на больших экранах она выше
+        const tabbar = h < 520 ? 60 : Math.round(Math.max(66, landscape ? 76 * s : 74 * Math.min(1.1, s)));
         css.setProperty('--tabbar', tabbar + 'px');
         // Панель на телефоне — не выше половины экрана, чтобы дерево оставалось видно
         css.setProperty('--sheet-h', Math.round(h * 0.5) + 'px');
@@ -75,7 +92,7 @@
             let bottom;
             if (UI.sheetOpen) {
                 const sheetH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sheet-h')) || h * 0.5;
-                bottom = tabbar.top - sheetH - 14;
+                bottom = tabbar.top - sheetH - 14 - 64;
             } else {
                 bottom = tabbar.top - 96;
             }
@@ -218,8 +235,8 @@
             onClose, noClose,
             html: `<div class="modal-scroll"><div class="modal-hero">${rays ? '<div class="rays"></div>' : ''}
                 ${art ? `<div class="art">${art}</div>` : ''}
-                <h2>${title}</h2>${text ? `<p>${text}</p>` : ''}${big ? `<div class="big">${big}</div>` : ''}${extra || ''}</div>
-                <div class="modal-actions">${btns}</div></div>`
+                <h2>${title}</h2>${text ? `<p>${text}</p>` : ''}${big ? `<div class="big">${big}</div>` : ''}${extra || ''}</div></div>
+                <div class="modal-actions">${btns}</div>`
         });
     };
 
@@ -249,6 +266,20 @@
         box.appendChild(el);
         setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 260); }, ms);
     }
+
+    const lowQueue = [];
+    let lastLow = 0;
+    UI.toastLow = (title, text, picHtml) => {
+        lowQueue.push([title, text, picHtml, 2400]);
+        if (lowQueue.length > 4) lowQueue.splice(0, lowQueue.length - 4);
+    };
+    setInterval(() => {
+        if (!lowQueue.length || toastBusy || UI.hasModal()) return;
+        if (G.S.stats.playMs < 40000 || Date.now() - lastLow < 8000) return;
+        lastLow = Date.now();
+        const item = lowQueue.shift();
+        UI.toast(item[0], item[1], item[2], item[3]);
+    }, 500);
 
     // ---------- Предложение за рекламу (всплывает над кнопкой радуги на несколько секунд) ----------
     let offerEl = null, offerTimer = 0;
@@ -326,7 +357,8 @@
         if (slowTimer < 0.12) return;
         slowTimer = 0;
 
-        $('#cps').textContent = R.t('per_sec', { n: U.fmt(G.incomePerSecShown()) });
+        const ips = G.incomePerSecShown();
+        $('#cps').textContent = ips >= 1 ? R.t('per_sec', { n: U.fmt(ips) }) : R.t('per_tap', { n: U.fmt(G.tapBase() * G.globalMult()) });
         const seedsPill = $('#hud .seeds');
         const showSeeds = G.S.seeds > 0 || G.S.prestiges > 0;
         seedsPill.classList.toggle('hidden', !showSeeds);
@@ -349,7 +381,7 @@
         UI.updateGrow();
         UI.updateStatus();
         UI.updateBadges();
-        UI.renderPanel(false);
+        if (UI.sheetOpen) UI.renderPanel(false);
         if (R.hints) R.hints.update();
     };
 

@@ -35,16 +35,18 @@
         if (!fn) { celebrating = false; updateGameplay(); return; }
         celebrating = true;
         let called = false;
-        fn(() => {
+        const done = () => {
             if (called) return;           // защита от двойного вызова
             called = true;
             setTimeout(nextCelebration, 150);
-        });
+        };
+        // Ошибка в одном окне не должна навсегда остановить игру
+        try { fn(done); } catch (e) { console.error('Ошибка окна:', e); done(); }
     }
 
     // ---------- Разметка геймплея для Яндекса ----------
     // Играет = в саду, вкладка видна, нет рекламы, паузы платформы и окна поверх
-    const isActive = () => main.playing && !main.paused && !document.hidden && !R.sdk.adOpen && !UI.hasModal();
+    const isActive = () => main.playing && !main.paused && !document.hidden && !R.sdk.adOpen && !UI.hasModal() && !celebrating;
     function updateGameplay() {
         R.sdk.setGameplay(isActive());
     }
@@ -88,7 +90,7 @@
     }
 
     function collectAway(seconds) {
-        const gain = G.offlineGain(seconds);
+        const gain = Math.min(G.offlineGain(seconds), Math.max(0, G.offlineCapAmount() - G.S.pendingOffline));
         if (gain > 0) {
             G.S.pendingOffline += gain;
             G.S.pendingAway = Math.max(G.S.pendingAway || 0, seconds);
@@ -118,16 +120,25 @@
         main.playing = true;
         R.scene.scheduleComet(true);
         if (G.S.pendingOffline > 0) showOffline();
+        if (G.S.pendingGift > 0) showPendingGift();
         maybeAutoGift();
         updateGameplay();
         R.save.mark();
+        UI.prewarm();
     }
 
     // ---------- Окно копилки ----------
+    let offlineOpen = false, offlineModal = null;
+    function updateOfflineModal() {
+        const big = offlineModal && offlineModal.el.querySelector('.big');
+        if (big) big.innerHTML = UI.coinImg() + U.fmt(G.S.pendingOffline);
+    }
     function showOffline() {
+        if (offlineOpen) { updateOfflineModal(); return; }
+        offlineOpen = true;
         enqueue((done) => {
             const gain = G.S.pendingOffline;
-            if (!(gain > 0)) { done(); return; }
+            if (!(gain > 0)) { offlineOpen = false; done(); return; }
             const away = G.S.pendingAway || 0;
             const h = Math.floor(away / 3600), m = Math.floor((away % 3600) / 60);
             const timeStr = h > 0 ? (m > 0 ? t('time_h_m', { h, m }) : t('time_h', { h })) : t('time_m', { m: Math.max(1, m) });
@@ -142,8 +153,9 @@
                 extra: full,
                 buttons,
                 noClose: true,
-                onClose: () => { done(); R.sdk.showInterstitial(); }
+                onClose: () => { offlineOpen = false; offlineModal = null; done(); }
             });
+            offlineModal = UI.topModal();
         });
     }
 
@@ -159,11 +171,29 @@
         R.save.flush();
     }
 
+    // Подарок за стадию, который не успели забрать (игру перезагрузили)
+    function showPendingGift() {
+        enqueue((done) => {
+            const gift = G.S.pendingGift;
+            if (!(gift > 0)) { done(); return; }
+            const m = UI.celebrate({
+                art: UI.img('stage', G.stageIndex()),
+                title: t('stage_gift'),
+                big: UI.coinImg() + U.fmt(gift),
+                buttons: [{ label: t('take'), cls: '', action: 'stageTake' }],
+                noClose: true,
+                onClose: done
+            });
+            m.gift = gift;
+        });
+    }
+
     // ---------- Подарок дня открывается сам при первом заходе за день ----------
     let autoGiftShown = '';
     function maybeAutoGift() {
         const today = U.dayKey(G.now());
         if (!M.giftAvailable() || autoGiftShown === today) return;
+        if (!G.S.gift.lastDay && G.S.stats.playMs < 180000) return;
         autoGiftShown = today;
         enqueue((done) => {
             if (!M.giftAvailable()) { done(); return; }
@@ -172,7 +202,7 @@
             UI.celebrate({
                 art: R.icon('gift'),
                 title: t('gift_auto_title'),
-                text: t('gift_auto_text', { d: day }),
+                text: t(day === 7 ? 'gift_auto_text7' : 'gift_auto_text', { d: day }),
                 big: UI.coinImg() + U.fmt(M.giftAmount(day)) + (seeds ? '&nbsp;+&nbsp;' + UI.seedImg() + seeds : ''),
                 extra: R.panels.giftCalendar() + `<p class="small">${R.panels.giftTomorrow()}</p>`,
                 buttons: [{ label: t('gift_take'), cls: 'gold', action: 'giftAuto' }],
@@ -191,6 +221,7 @@
         const dt = Math.min(raw, 0.1);         // анимации — без рывков
 
         const active = isActive();
+        if (!active && main.playing && !document.hidden) freezeTimers(raw * 1000);
         if (active) {
             const res = G.tick(econDt);
             res.taps.forEach((tap, i) => {
@@ -217,6 +248,15 @@
         R.scene.frame(dt);
         UI.frame(dt);
         R.save.update();
+    }
+
+    // Пока игра на паузе (окно, реклама), радужный дождь, отдых радуги и волшебные
+    // тапы стоят на месте — игрок не теряет бонус, пока читает окно
+    function freezeTimers(ms) {
+        const now = G.now();
+        if (G.S.buffEnd > now) G.S.buffEnd += ms;
+        if (G.S.cooldownEnd > now) G.S.cooldownEnd += ms;
+        if (G.S.frenzyEnd > now) G.S.frenzyEnd += ms;
     }
 
     // ---------- Тапы по саду ----------
@@ -248,10 +288,12 @@
             R.save.mark();
             return;
         }
-        if (hit === 'tree') {
+        if (hit === 'basket') { UI.actions.freeChest(); return; }
+        if (hit === 'critter' || hit === 'tree') {
             // На телефоне при открытой панели тапы по самой панели не идут в дерево
             const panel = UI.mode === 'portrait' && UI.sheetOpen ? $('#panel').getBoundingClientRect() : null;
             if (panel && y > panel.top) return;
+            if (hit === 'critter') R.scene.pokeActor(R.scene.lastActor);
             doTap(x, y);
         }
     }
@@ -297,9 +339,9 @@
             const list = achBatch;
             achBatch = [];
             R.audio.achievement();
-            if (list.length === 1) UI.toast(t('ach_unlocked'), t('ach_' + list[0].group.id) + ' ' + '★'.repeat(list[0].step + 1), R.icon('trophy'));
-            else UI.toast(t('ach_many', { n: list.length }), list.map(x => t('ach_' + x.group.id)).filter((v, i, arr) => arr.indexOf(v) === i).join(', '), R.icon('trophy'));
-        }, 500);
+            if (list.length === 1) UI.toastLow(t('ach_unlocked'), t('ach_' + list[0].group.id) + ' ' + '★'.repeat(list[0].step + 1), R.icon('trophy'));
+            else UI.toastLow(t('ach_many', { n: list.length }), list.map(x => t('ach_' + x.group.id)).filter((v, i, arr) => arr.indexOf(v) === i).join(', '), R.icon('trophy'));
+        }, 1500);
     }
 
     // ---------- События игры → звук, эффекты, окна ----------
@@ -323,6 +365,7 @@
                 return;
             }
             const gift = G.stageGift();
+            G.S.pendingGift += gift;
             const flowerHtml = r.newFlowers.map(i => {
                 const f = CFG.flowers[i];
                 return `<div class="mini-card"><div class="pic">${UI.img('flower', f.id)}</div><div><b>${t('flower_up_title')}</b><br>${t('flower_' + f.id)} — ${t('flower_desc_' + f.id)}</div></div>`;
@@ -332,7 +375,7 @@
                 if (R.sdk.adsAvailable()) buttons.unshift({ label: `<i class="ico">${R.icon('video')}</i>${t('take_x2')}`, cls: 'blue', action: 'stageDouble' });
                 const m = UI.celebrate({
                     art: UI.img('stage', r.stage),
-                    title: t('stage_up_title'),
+                    title: t(r.stage === 1 ? 'stage_up_title_sprout' : 'stage_up_title'),
                     text: t('stage_up_text', { name: t('stage_' + st.id) }) + (st.perk ? `<br><b class="good">${t('perk_stage_' + st.id)}</b>` : ''),
                     extra: flowerHtml + `<p class="small">${t('stage_gift')}</p>`,
                     big: UI.coinImg() + U.fmt(gift),
@@ -341,6 +384,7 @@
                     onClose: done
                 });
                 m.gift = gift;
+                m.stageGift = true;
             });
             R.save.flush();
         });
@@ -362,7 +406,7 @@
             R.audio[r.count > 1 ? 'buyBig' : 'buy']();
             R.scene.helperFx(r.index, r.first);
             if (r.milestone) {
-                UI.toast(t('helper_' + CFG.helpers[r.index].id), t('helper_milestone', { n: r.milestone }), UI.img('helper', CFG.helpers[r.index].id));
+                UI.toastLow(t('helper_' + CFG.helpers[r.index].id), t('helper_milestone', { n: r.milestone }), UI.img('helper', CFG.helpers[r.index].id));
                 R.audio.achievement();
             }
             R.save.mark();
@@ -379,7 +423,7 @@
             R.panels.refreshGoals();
         });
         R.on('decor', (list) => {
-            list.forEach(d => UI.toast(t('decor_new'), t('decor_' + d.id), UI.img('decor', d.id)));
+            UI.toastLow(t('decor_new'), list.map(d => t('decor_' + d.id)).join(', '), UI.img('decor', list[list.length - 1].id));
         });
         R.on('prestige', (r) => {
             R.audio.prestige();
@@ -392,7 +436,6 @@
                 art: UI.seedImg(),
                 title: t('garden_done'),
                 text: t('garden_done_text', { n: r.gained }),
-                extra: `<p class="small">${t('garden_gift', { n: U.fmt(r.gift) })}</p>`,
                 onClose: () => { done(); R.sdk.showInterstitial(); }
             }));
             R.save.flush();
@@ -428,8 +471,9 @@
 
         // Клавиатура на компьютере: пробел — тап по дереву, R/Enter — радуга
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') e.preventDefault();
-            if (!isActive() || e.repeat) return;
+            if (!isActive()) return;
+            if (e.code === 'Space' || e.code === 'Enter') e.preventDefault();
+            if (e.repeat) return;
             if (e.code === 'Space') {
                 const p = R.scene.treePoint();
                 doTap(p.x + U.rand(-30, 30), p.y + U.rand(-20, 20));
@@ -440,7 +484,7 @@
 
         document.addEventListener('contextmenu', (e) => e.preventDefault());
         document.addEventListener('visibilitychange', onVisibility);
-        root.addEventListener('pagehide', () => R.save.flush());
+        root.addEventListener('pagehide', () => R.save.flushUrgent());
         root.addEventListener('blur', () => R.audio.pause());
         root.addEventListener('focus', () => { if (!document.hidden && !R.sdk.adOpen && !main.paused) R.audio.resume(); });
         root.addEventListener('resize', () => { R.scene.resize(); UI.layout(); });
@@ -451,7 +495,7 @@
     function onVisibility() {
         if (document.hidden) {
             hiddenAt = G.now();
-            R.save.flush();
+            R.save.flushUrgent();
             R.audio.pause();
         } else {
             if (!R.sdk.adOpen && !main.paused) R.audio.resume();
@@ -460,7 +504,8 @@
                 const away = (G.now() - hiddenAt) / 1000;
                 const gain = collectAway(away);
                 if (gain > 0 && main.playing) {
-                    if (away > 600) showOffline();
+                    if (offlineOpen) updateOfflineModal();
+                    else if (away > 600) showOffline();
                     else {
                         takeOffline(1);
                         UI.toast(t('offline_title'), t('welcome_back', { n: U.fmt(gain) }), UI.coinImg());
@@ -566,6 +611,7 @@
             UI.closeModal(modal);
         };
         A.offlineDouble = (arg, el, modal) => {
+            if (!(G.S.pendingOffline > 0)) { UI.closeModal(modal); return; }
             adFromModal(modal, () => { }, (ok) => {
                 const gain = G.S.pendingOffline;
                 takeOffline(ok ? 2 : 1);
@@ -573,9 +619,14 @@
                 UI.closeModal(modal);
             });
         };
+        const takeStageGift = (modal, mult) => {
+            const g = Math.min(modal.gift || 0, G.S.pendingGift);
+            G.S.pendingGift = Math.max(0, G.S.pendingGift - g);
+            G.addCoins(g * mult);
+        };
         A.stageTake = (arg, el, modal) => {
             UI.busyModal(modal, true);
-            G.addCoins(modal.gift || 0);
+            takeStageGift(modal, 1);
             R.audio.reward();
             R.scene.rewardFx();
             UI.closeModal(modal);
@@ -583,7 +634,7 @@
         };
         A.stageDouble = (arg, el, modal) => {
             adFromModal(modal, () => { }, (ok) => {
-                G.addCoins((modal.gift || 0) * (ok ? 2 : 1));
+                takeStageGift(modal, ok ? 2 : 1);
                 R.audio.reward();
                 R.scene.rewardFx();
                 UI.closeModal(modal);
@@ -614,8 +665,12 @@
         A.auth = async () => {
             if (await R.sdk.openAuth()) {
                 await R.save.reloadAfterAuth();
-                UI.setShownCoins(G.S.coins);
-                UI.renderPanel(true);
+                if (G.S.settings.lang) R.i18n.setLang(G.S.settings.lang);
+                R.audio.setSound(G.S.settings.sound);
+                R.audio.setMusic(G.S.settings.music);
+                R.audio.setEra(G.stageIndex());
+                buildStaticUI();
+                if (G.S.pendingOffline > 0) showOffline();
             }
             R.panels.refreshSettings();
         };

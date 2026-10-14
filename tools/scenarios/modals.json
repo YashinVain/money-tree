@@ -19,7 +19,7 @@
     { "sleep": 1500, "shot": "m4-butterfly.png" },
     { "js": "R.game.catchComet = (orig => () => { const r = orig(); return r; })(R.game.catchComet); const rnd=Math.random; Math.random=()=>0.1; const p=R.scene.cometPoint(); document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x,clientY:p.y,bubbles:true})); Math.random=rnd;", "sleep": 600 },
     { "shot": "m5-caught-offer.png" },
-    { "js": "R.main.debug.level(62); R.game.addCoins(2e7); document.querySelector('.tab[data-tab=garden]').click();", "sleep": 2500 },
+    { "js": "R.main.debug.level(77); R.game.addCoins(2e7); document.querySelector('.tab[data-tab=garden]').click();", "sleep": 2500 },
     { "js": "mclick('stageTake'); mclick('close');", "sleep": 500 },
     { "js": "mclick('stageTake'); mclick('close'); if(!document.body.classList.contains('sheet-open')) document.querySelector('.tab[data-tab=garden]').click();", "sleep": 700 },
     { "shot": "m6-garden.png" },

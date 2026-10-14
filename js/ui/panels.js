@@ -119,7 +119,7 @@
             return head + cards;
         },
         patch: (el) => {
-            txt(el.querySelector('[data-k="total"]'), t('helpers_total', { n: U.fmt(G.passivePerSec()) }));
+            txt(el.querySelector('[data-k="total"]'), t('helpers_total', { n: U.fmt(G.passiveBase() * G.globalMult()) }));
             CFG.helpers.forEach((h, i) => {
                 if (!G.helperRevealed(i)) return;
                 const btn = el.querySelector(`[data-k="hire${i}"]`);
@@ -169,7 +169,7 @@
 
     PN.garden = {
         title: () => t('garden_title'),
-        sig: () => [G.canPrestige(), G.seedsOnPrestige(), G.S.seeds, JSON.stringify(G.S.perks)].join(':'),
+        sig: () => [G.canPrestige(), G.seedsOnPrestige() > 0, JSON.stringify(G.S.perks)].join(':'),
         html: () => {
             let top;
             const gain = G.seedsOnPrestige();
@@ -180,8 +180,7 @@
                     <div class="bar"><i style="width:${Math.min(1, G.S.level / CFG.prestigeLevel) * 100}%"></i><span>${G.S.level} / ${CFG.prestigeLevel}</span></div></div>
                 </div></div>`;
             } else {
-                const canAfter = canLevelsAfter(gain);
-                const preview = gain > 0 ? `<div class="desc good" style="margin-top:6px">${t('garden_preview', { p: Math.round(canAfter * G.perkCfg('can').effect * 100) })}</div>` : '';
+                const preview = `<div class="desc good" style="margin-top:6px" data-k="preview"></div>`;
                 top = `<div class="card hl" style="text-align:center">
                     <div class="desc">${t('garden_gain')}</div>
                     <div class="title" style="font-size:32px;display:flex;align-items:center;justify-content:center;gap:6px;margin:4px 0">
@@ -203,7 +202,7 @@
                     <div class="grow"><div class="title">${t('perk_' + p.id)}${lvl ? `<span class="lvl">${t('perk_level', { n: lvl })}</span>` : ''}</div>
                     <div class="desc">${t('perk_desc_' + p.id)}</div></div>
                     ${maxed ? `<button class="btn off col">${p.max === 1 ? t('perk_bought') : t('perk_max')}</button>`
-                        : `<button class="btn col gold" data-a="perk:${p.id}" data-k="perk_${p.id}"><span>+1</span><small>${UI.price(G.perkPrice(p.id), true)}</small></button>`}
+                        : `<button class="btn col gold" data-a="perk:${p.id}" data-k="perk_${p.id}"><span>${t('perk_buy')}</span><small>${UI.price(G.perkPrice(p.id), true)}</small></button>`}
                 </div></div>`;
             }).join('');
             return `<div class="note">${t('garden_intro')}</div>${top}<div class="sec-title">${t('perks_title')}</div>${perks}`;
@@ -215,6 +214,11 @@
             const next = el.querySelector('[data-k="next"]');
             if (next) txt(next, gain > 0 ? t('garden_next', { n: U.fmt(G.nextSeedAt() - G.S.runEarned) }) : t('garden_need_more', { n: U.fmt(CFG.seedDivisor) }));
             setBtn(el.querySelector('[data-k="pbtn"]'), gain > 0);
+            const pv = el.querySelector('[data-k="preview"]');
+            if (pv) {
+                const eff = G.perkCfg('can').effect * 100;
+                txt(pv, gain > 0 ? t('garden_preview', { p: Math.round(canLevelsAfter(gain) * eff), c: Math.round(G.perkLevel('can') * eff) }) : '');
+            }
             CFG.perks.forEach(p => setBtn(el.querySelector(`[data-k="perk_${p.id}"]`), G.S.seeds >= G.perkPrice(p.id)));
         }
     };
@@ -313,7 +317,7 @@
         // Новый сад: посадка заметно выгодна или есть на что потратить семена
         b.garden = (G.canPrestige() && G.seedsOnPrestige() >= Math.max(5, Math.ceil(G.S.seedsLife * 0.5))) ||
             CFG.perks.some(p => !G.perkMaxed(p.id) && G.S.seeds >= G.perkPrice(p.id)) ? 1 : 0;
-        b.bonus = M.giftAvailable() || G.freeChestReady() ? 1 : 0;
+        b.bonus = G.S.stats.playMs > 120000 && (M.giftAvailable() || G.freeChestReady()) ? 1 : 0;
         b.flowers = 0;
         b.goals = M.claimableCount();
         return b;

@@ -40,7 +40,7 @@
         {
             id: 'release',
             when: () => G.canRelease(),
-            text: () => R.t('hint_release'),
+            text: () => R.t('hint_release', { m: G.buffMultValue() }),
             target: el('#btn-rainbow'),
             hideWhenSheet: true
         },
@@ -49,7 +49,7 @@
             tab: 'tree',
             when: () => G.S.stats.buys === 0 && G.S.coins >= G.treePrice(),
             text: () => (UI.sheetOpen && UI.tab === 'tree' ? R.t('hint_upgrade_buy') : R.t('hint_upgrade')),
-            target: inPanel('tree', '[data-a="grow"]'),
+            target: () => (UI.sheetOpen && UI.tab === 'tree' ? el('[data-a="grow"]')() : el('#btn-grow')()),
             done: () => G.S.level > 0
         },
         {
@@ -70,7 +70,7 @@
         {
             id: 'prestige',
             tab: 'garden',
-            when: () => G.canPrestige() && G.seedsOnPrestige() >= 5 && G.S.prestiges === 0,
+            when: () => G.canPrestige() && G.seedsOnPrestige() >= 15 && G.S.prestiges === 0,
             text: () => R.t('hint_prestige'),
             target: tabEl('garden'),
             hideWhenSheet: true,
@@ -155,7 +155,8 @@
         if (y === undefined) y = Math.max(8, Math.min(Hh - bh - 8, tr.top - bh - 40));
         bubble.style.left = x + 'px';
         bubble.style.top = y + 'px';
-        hand.style.left = tg.x + 'px';
-        hand.style.top = tg.y + 'px';
+        const hx = tg.rect && tg.rect.right - tg.rect.left < 220 ? tg.x + (tg.rect.right - tg.rect.left) * 0.28 : tg.x;
+        hand.style.left = hx + 'px';
+        hand.style.top = (tg.y + (tg.rect ? (tg.rect.bottom - tg.rect.top) * 0.18 : 0)) + 'px';
     }
 })(typeof window !== 'undefined' ? window : globalThis);

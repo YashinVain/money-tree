@@ -49,7 +49,7 @@
         const helpers = Array.isArray(fresh.helpers) ? fresh.helpers : [];
         fresh.helpers = R.CFG.helpers.map((h, i) => Math.floor(num(helpers[i])));
         ['coins', 'runEarned', 'lifeEarned', 'seeds', 'seedsLife', 'charge', 'buffEnd', 'cooldownEnd', 'frenzyEnd',
-            'prestiges', 'bestLevel', 'freeChestAt', 'savedAt', 'pendingOffline', 'pendingAway', 'maxStageEver'].forEach(k => { fresh[k] = num(fresh[k]); });
+            'prestiges', 'bestLevel', 'freeChestAt', 'savedAt', 'pendingOffline', 'pendingAway', 'pendingGift', 'maxStageEver'].forEach(k => { fresh[k] = num(fresh[k]); });
         Object.keys(fresh.stats).forEach(k => { fresh.stats[k] = num(fresh.stats[k]); });
         Object.keys(fresh.boosts).forEach(k => { fresh.boosts[k] = num(fresh.boosts[k]); });
         Object.keys(fresh.adReady).forEach(k => { fresh.adReady[k] = num(fresh.adReady[k]); });
@@ -131,9 +131,11 @@
             SV.storage.set(KEY, SV.serialize());
             lastLocal = now;
             dirty = false;
-            if (force || now - lastCloud > CLOUD_GAP) {
+            if (force === 'urgent' || now - lastCloud > CLOUD_GAP) {
                 lastCloud = now;
-                R.sdk.saveCloud(G.S, !!force);
+                R.sdk.saveCloud(G.S, force === 'urgent');
+            } else if (force) {
+                R.sdk.saveCloud(G.S, false);   // важное событие: уйдёт с ближайшей разрешённой отправкой
             }
         }
     };
@@ -142,5 +144,11 @@
     SV.flush = () => {
         dirty = true;
         SV.update(true);
+    };
+
+    // Уход со страницы или сворачивание — отправить в облако сразу
+    SV.flushUrgent = () => {
+        dirty = true;
+        SV.update('urgent');
     };
 })(typeof window !== 'undefined' ? window : globalThis);

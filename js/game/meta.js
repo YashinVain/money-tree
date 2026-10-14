@@ -51,7 +51,7 @@
         buys: { icon: 'up', make: () => U.pick([10, 20, 30]) },
         comets: { icon: 'butterfly', make: () => U.pick([1, 2]) },
         helpers: { icon: 'helpers', make: () => U.pick([10, 15, 25]) },
-        earn: { icon: 'coin', make: () => Math.max(2000, Math.round(G.secondsOfIncome(900) / 100) * 100) }
+        earn: { icon: 'coin', make: () => Math.max(2000, Math.round(G.secondsOfIncome(600) / 100) * 100) }
     };
 
     M.ensureDaily = () => {

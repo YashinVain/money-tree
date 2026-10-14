@@ -67,12 +67,14 @@
     // 130000 -> "130 тыс", а не "13 тыс" (старый баг из первой версии)
     U.fmt = (num, lang) => {
         lang = lang || (R.i18n ? R.i18n.lang : 'ru');
+        if (num !== num) { console.warn('fmt: не число'); return '0'; }
         if (!isFinite(num)) return '∞';
         const sign = num < 0 ? '-' : '';
         let abs = Math.abs(num);
         if (abs < 1000) {
             // Маленькие дробные числа (доход 0.5/сек) показываем с одной цифрой
-            const s = abs < 10 && abs % 1 !== 0 ? (Math.floor(abs * 10) / 10).toString() : Math.floor(abs).toString();
+            // Меньше единицы — с одной цифрой после запятой (0,5), иначе целые
+            const s = abs < 1 && abs > 0 ? (Math.floor(abs * 10) / 10).toString() : Math.floor(abs).toString();
             return sign + (lang === 'ru' ? s.replace('.', ',') : s);
         }
         const tier = Math.floor(Math.log10(abs) / 3);

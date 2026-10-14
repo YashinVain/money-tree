@@ -40,6 +40,7 @@
         settings: { lang: null, sound: true, music: true, vibro: true },
         pendingOffline: 0,    // копилка, которую игрок ещё не забрал (не теряется при перезагрузке)
         pendingAway: 0,       // сколько секунд игрока не было (для окна копилки)
+        pendingGift: 0,       // подарок за новую стадию, который ещё не забрали
         playerId: '',         // id игрока Яндекса, чей это сад
         savedAt: 0
     });
@@ -117,6 +118,9 @@
         return m;
     };
 
+    // То же, но без рекламного x2 — награды и цели не должны удваиваться от бонуса
+    G.baseMult = () => G.globalMult() / (G.S.boosts.incomeX2End > G.now() ? 2 : 1);
+
     G.buffActive = () => G.S.buffEnd > G.now();
     G.buffMultValue = () => G.flowerEffect('buffMult') || CFG.buffMult;
     G.buffMult = () => (G.buffActive() ? G.buffMultValue() : 1);
@@ -154,7 +158,7 @@
     G.instantChance = () => G.stagePerk('instantCharge');
 
     // Доход в секунду для подписи "+N/сек": зверята + авто-тап (без активных тапов)
-    G.incomePerSecShown = () => G.passivePerSec() + G.autoTapRate() * G.tapValue(false) * (1 + G.critChance() * (G.critMult() - 1));
+    G.incomePerSecShown = () => (G.passiveBase() + G.autoTapRate() * G.tapBase() * (1 + G.critChance() * (G.critMult() - 1))) * G.globalMult();
 
     G.chargePerTap = () => {
         let c = 1;
@@ -223,7 +227,7 @@
         if (!G.canRelease()) return false;
         G.S.charge = 0;
         const dur = G.buffDurationMs();
-        G.S.buffEnd = G.now() + dur;
+        G.S.buffEnd = Math.max(G.S.buffEnd, G.now()) + dur;
         G.S.cooldownEnd = G.S.buffEnd + CFG.buffCooldown;
         G.S.stats.releases++;
         R.emit('release', { duration: dur, mult: G.buffMultValue() });
@@ -367,6 +371,8 @@
     G.offlineRate = () => CFG.offlineRate * (1 + G.flowerEffect('offlineMult'));
 
     // Пока игрока нет, зверята продолжают работать (30% скорости, до 4 часов, Корзинка — больше)
+    G.offlineCapAmount = () => G.passiveBase() * G.globalMult() * G.offlineCapSec() * G.offlineRate();
+
     G.offlineGain = (seconds) => {
         if (seconds < CFG.offlineMinSec) return 0;
         const sec = Math.min(seconds, G.offlineCapSec());
@@ -386,15 +392,14 @@
         const gained = G.seedsOnPrestige();
         if (gained <= 0) return 0;
 
-        // Дневник садовника: самый доходный зверёк переезжает в новый сад
-        let keep = -1;
-        if (G.perkLevel('diary') > 0) {
-            let best = 0;
-            G.S.helpers.forEach((lvl, i) => {
-                const r = G.helperRateAt(i, lvl);
-                if (r > best) { best = r; keep = i; }
-            });
-        }
+        // Самый доходный зверёк всегда переезжает в новый сад: с половиной уровней,
+        // а с Дневником садовника — со всеми (детям не так грустно расставаться)
+        let keep = -1, best = 0;
+        G.S.helpers.forEach((lvl, i) => {
+            const r = G.helperRateAt(i, lvl);
+            if (r > best) { best = r; keep = i; }
+        });
+        const keepLevels = keep >= 0 ? Math.floor(G.S.helpers[keep] * (G.perkLevel('diary') > 0 ? 1 : CFG.keepBestHelper)) : 0;
 
         G.S.maxStageEver = Math.max(G.S.maxStageEver, G.stageIndex());
         G.S.seeds += gained;
@@ -403,7 +408,7 @@
         G.S.coins = 0;
         G.S.runEarned = 0;
         G.S.level = Math.min(G.perkValue('bed'), G.maxLevel);
-        G.S.helpers = G.S.helpers.map((lvl, i) => (i === keep ? lvl : 0));
+        G.S.helpers = G.S.helpers.map((lvl, i) => (i === keep ? keepLevels : 0));
         G.S.charge = 0;
         G.S.buffEnd = 0;
         G.S.cooldownEnd = 0;
@@ -446,7 +451,7 @@
     // "N секунд дохода" — мерило для наград (бабочка, корзинки, задания, подарок).
     // Считаем и активную игру (3 тапа в секунду), чтобы награда ощущалась
     G.secondsOfIncome = (sec) => {
-        const perSec = G.passiveBase() * G.globalMult() + (3 + G.autoTapRate()) * G.tapBase() * G.globalMult();
+        const perSec = (G.passiveBase() + (3 + G.autoTapRate()) * G.tapBase()) * G.baseMult();
         return Math.max(perSec * sec, 2 * sec);
     };
 

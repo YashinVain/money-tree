@@ -54,7 +54,7 @@
         helperMilestones: [10, 25, 50, 75, 100, 150, 200],   // на каждой вехе x2 к этому зверьку
 
         // ---- Новый сад (престиж) ----
-        prestigeLevel: 60,         // открывается, когда дерево зацветёт
+        prestigeLevel: 75,         // открывается, когда вырастет Яблоня
         seedDivisor: 1e6,          // золотые семена = floor(sqrt(монет_за_сад / делитель))
         perks: [
             { id: 'can', basePrice: 1, priceStep: 1, max: 0, effect: 0.25 },        // Лейка: +25% ко всем монеткам
@@ -82,15 +82,15 @@
         ],
         frenzyMult: 7,
         frenzyDuration: 12000,
-        stardustSeconds: 60,
+        stardustSeconds: 40,
 
         // ---- Бонусы за рекламу (rewarded video) ----
         ads: {
             incomeX2: { minutes: 15, maxMinutes: 240 },   // каждый просмотр +15 мин, максимум 4 ч
             shower: { seconds: 60, cooldown: 5 * 60000 },    // радужный дождь на целую минуту
-            chest: { seconds: 300, cooldown: 8 * 60000 }    // доход за 5 минут
+            chest: { seconds: 600, cooldown: 8 * 60000 }    // доход за 10 минут
         },
-        freeChest: { seconds: 600, cooldown: 3 * 3600000 }, // бесплатная корзинка раз в 3 часа
+        freeChest: { seconds: 300, cooldown: 3 * 3600000 }, // бесплатная корзинка раз в 3 часа
         interstitialGap: 180000,
 
         // ---- Достижения: каждое +2% к доходу навсегда ----
@@ -98,9 +98,10 @@
 
         // ---- Ежедневные задания и подарок ----
         questsPerDay: 3,
-        questRewardSeconds: 180,
+        questRewardSeconds: 90,
         stageGiftSeconds: 45,        // подарок за новую стадию дерева = доход за 45 сек
-        gardenGiftLevels: 6,          // стартовый подарок нового сада: монетки на 6 уровней дерева
+        gardenGiftLevels: 10,         // стартовый подарок нового сада: монетки на 10 уровней дерева
+        keepBestHelper: 0.5,          // лучший зверёк переезжает в новый сад с половиной уровней (Дневник — со всеми)
         giftDay7Seeds: 2,             // 7-й день серии подарков — ещё и золотые семена
         dailyGiftSeconds: [180, 300, 420, 600, 780, 1020, 1500]   // по дням серии
     };

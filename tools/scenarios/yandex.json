@@ -61,7 +61,7 @@
    "js": "return { x2: R.game.S.boosts.incomeX2End > Date.now(), adOpen: R.sdk.adOpen, ads: R.game.S.stats.ads };"
   },
   {
-   "js": "R.game.S.stats.playMs = 400000; R.sdk.showInterstitial().then(v => { window.__inter = v; }); return R.sdk.adOpen;",
+   "js": "R.game.S.stats.playMs = 400000; const dn=Date.now; Date.now=()=>dn()+200000; R.sdk.showInterstitial().then(v => { window.__inter = v; }); Date.now=dn; return R.sdk.adOpen;",
    "name": "interstitial",
    "sleep": 1500
   },

@@ -136,7 +136,7 @@ test('копилка: 30% дохода, не больше лимита, не з�
 });
 
 test('новый сад: семена, сброс, бонусы остаются', () => {
-    G.S.level = 70;
+    G.S.level = 80;
     G.S.runEarned = 25e6;
     G.S.helpers = [10, 5, 0, 0, 0, 0];
     G.S.perks.can = 2;
@@ -146,32 +146,32 @@ test('новый сад: семена, сброс, бонусы остаются
     eq(G.S.level, 0);
     ok(G.S.coins > 0, 'стартовый подарок нового сада');
     ok(G.S.coins >= G.treePrice(0) * CFG.gardenGiftLevels, 'хватает на несколько уровней');
-    eq(G.S.helpers.join(','), '0,0,0,0,0,0');
+    eq(G.S.helpers.join(','), '0,2,0,0,0,0', 'лучший зверёк переехал с половиной уровней');
     eq(G.S.seeds, 5);
     eq(G.S.perks.can, 2);
 });
 
 test('новый сад без семян не стирает прогресс', () => {
-    G.S.level = 70;
+    G.S.level = 80;
     G.S.runEarned = 10;
     G.S.coins = 500;
     eq(G.prestige(), 0);
-    eq(G.S.level, 70);
+    eq(G.S.level, 80);
     eq(G.S.coins, 500);
 });
 
 test('дневник садовника сохраняет лучшего зверька', () => {
-    G.S.level = 70;
+    G.S.level = 80;
     G.S.runEarned = 4e6;
     G.S.perks.diary = 1;
     G.S.helpers = [30, 20, 5, 0, 0, 0];
     G.prestige();
-    eq(G.S.helpers[2] > 0 || G.S.helpers[1] > 0 || G.S.helpers[0] > 0, true);
-    eq(G.S.helpers.filter(x => x > 0).length, 1);
+    eq(G.S.helpers.filter(x => x > 0).length, 1, 'остаётся один зверёк');
+    ok(G.S.helpers[1] === 20 || G.S.helpers[2] === 5 || G.S.helpers[0] === 30, 'со всеми уровнями');
 });
 
 test('грядка стартует новый сад с уровнями', () => {
-    G.S.level = 70;
+    G.S.level = 80;
     G.S.runEarned = 4e6;
     G.S.perks.bed = 2;
     G.prestige();

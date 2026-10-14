@@ -270,7 +270,7 @@
                 ctx.save();
                 ctx.globalAlpha = alpha * 0.35 * glow;
                 ctx.strokeStyle = '#ffffff';
-                ctx.lineCap = 'round';
+                ctx.lineCap = 'butt';
                 ctx.lineWidth = band * (P.RAINBOW.length + 3);
                 ctx.beginPath();
                 ctx.arc(x, y, r - band * (P.RAINBOW.length - 1) / 2, a0, a0 + (a1 - a0) * fill);
