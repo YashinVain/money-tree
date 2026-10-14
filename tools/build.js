@@ -41,6 +41,9 @@ fs.mkdirSync(path.join(OUT, 'css'), { recursive: true });
 fs.writeFileSync(path.join(OUT, 'index.html'), html);
 fs.writeFileSync(path.join(OUT, 'game.js'), bundle);
 fs.copyFileSync(path.join(ROOT, 'css', 'style.css'), path.join(OUT, 'css', 'style.css'));
+// Шрифт Nunito и его лицензия
+fs.mkdirSync(path.join(OUT, 'fonts'), { recursive: true });
+fs.readdirSync(path.join(ROOT, 'fonts')).forEach(f => fs.copyFileSync(path.join(ROOT, 'fonts', f), path.join(OUT, 'fonts', f)));
 
 // Проверка синтаксиса склеенного файла
 new Function(bundle);
