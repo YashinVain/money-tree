@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Обложка</title>
+<!-- Обложка 800×470 для Яндекса: картинка из нейросети (docs/promo/source/cover-ai.jpg)
+     + название игры нашим шрифтом Nunito. Открывать через сервер: tools/cover-ai.html?lang=ru|en
+     Снимок делает сценарий tools/scenarios/cover-ai.json -->
+<style>
+    @font-face { font-family: "Nunito"; font-weight: 200 1000; src: url("../fonts/nunito-cyrillic.woff2") format("woff2"); unicode-range: U+0400-045F; }
+    @font-face { font-family: "Nunito"; font-weight: 200 1000; src: url("../fonts/nunito-latin.woff2") format("woff2"); unicode-range: U+0000-00FF; }
+    html, body { margin: 0; background: #7cc8ff; overflow: hidden; }
+    canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="800" height="470"></canvas>
+<script>
+    const lang = new URLSearchParams(location.search).get('lang') === 'en' ? 'en' : 'ru';
+    const LINES = lang === 'en' ? ['Money', 'Tree'] : ['Денежное', 'дерево'];
+    const c = document.getElementById('c').getContext('2d');
+
+    function title(text, x, y, size) {
+        c.font = `1000 ${size}px Nunito, "Trebuchet MS", sans-serif`;
+        c.textAlign = 'center';
+        c.textBaseline = 'alphabetic';
+        c.lineJoin = 'round';
+        // тень и толстая коричневая обводка — как у логотипов казуальных игр
+        c.save();
+        c.shadowColor = 'rgba(60, 30, 5, 0.45)';
+        c.shadowBlur = 10; c.shadowOffsetY = 6;
+        c.strokeStyle = '#5a2e0c';
+        c.lineWidth = size * 0.2;
+        c.strokeText(text, x, y);
+        c.restore();
+        c.strokeStyle = '#fff6c8';
+        c.lineWidth = size * 0.07;
+        c.strokeText(text, x, y);
+        const g = c.createLinearGradient(0, y - size * 0.8, 0, y);
+        g.addColorStop(0, '#fff7b0');
+        g.addColorStop(0.45, '#ffd23f');
+        g.addColorStop(1, '#f39a12');
+        c.fillStyle = g;
+        c.fillText(text, x, y);
+    }
+
+    async function draw() {
+        await document.fonts.load('1000 80px Nunito', LINES.join(' '));
+        const img = new Image();
+        img.src = '../docs/promo/source/cover-ai.jpg';
+        await img.decode();
+        // 1280×768 → 800×480, по высоте лишние 10 px срезаем поровну
+        const k = 800 / img.width;
+        c.drawImage(img, 0, (470 - img.height * k) / 2, 800, img.height * k);
+        // мягкое светлое пятно под надписью — чтобы читалась на небе
+        const glow = c.createRadialGradient(215, 190, 20, 215, 190, 230);
+        glow.addColorStop(0, 'rgba(255,255,255,0.45)');
+        glow.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = glow;
+        c.fillRect(0, 0, 460, 400);
+        const size = lang === 'en' ? 96 : 70;
+        title(LINES[0], 215, 170, size);
+        title(LINES[1], 215, 170 + size * 1.02, size);
+        document.body.dataset.ready = '1';
+    }
+    draw();
+</script>
+</body>
+</html>

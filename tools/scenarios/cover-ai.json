@@ -1,0 +1,10 @@
+{
+  "out": "../../docs/promo",
+  "steps": [
+    { "size": [800, 470, 1, false] },
+    { "open": "http://127.0.0.1:8934/tools/cover-ai.html?lang=ru", "wait": 1500 },
+    { "name": "ru", "js": "for (let i = 0; i < 40 && !document.body.dataset.ready; i++) await new Promise(r => setTimeout(r, 100)); return document.body.dataset.ready || 'not ready';", "shot": "cover-800x470-ru.png" },
+    { "open": "http://127.0.0.1:8934/tools/cover-ai.html?lang=en", "wait": 1500 },
+    { "name": "en", "js": "for (let i = 0; i < 40 && !document.body.dataset.ready; i++) await new Promise(r => setTimeout(r, 100)); return document.body.dataset.ready || 'not ready';", "shot": "cover-800x470-en.png" }
+  ]
+}
