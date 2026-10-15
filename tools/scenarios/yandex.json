@@ -1,0 +1,88 @@
+{
+ "out": "out-ya",
+ "steps": [
+  {
+   "size": [
+    1280,
+    720,
+    1,
+    false
+   ]
+  },
+  {
+   "open": "https://localhost:8964/index.html",
+   "wait": 4000
+  },
+  {
+   "name": "sdk",
+   "js": "return { mock: R.sdk.mock, lang: R.sdk.lang, player: !!R.sdk.player, ysdk: !!R.sdk.ysdk };"
+  },
+  {
+   "js": "document.getElementById('btn-play').click();",
+   "sleep": 1500
+  },
+  {
+   "js": "const b=document.querySelector('.modal [data-a=giftAuto]'); if(b) b.click();",
+   "sleep": 600
+  },
+  {
+   "js": "for(let i=0;i<20;i++){const p=R.scene.treePoint();document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x,clientY:p.y,bubbles:true}));} R.save.flush();",
+   "sleep": 5000
+  },
+  {
+   "js": "document.querySelector('.tab[data-tab=bonus]').click();",
+   "sleep": 600
+  },
+  {
+   "name": "adBefore",
+   "js": "return R.game.S.boosts.incomeX2End;"
+  },
+  {
+   "js": "document.querySelector('[data-a=\"ad:incomeX2\"]').click();",
+   "sleep": 4000
+  },
+  {
+   "name": "adAfter",
+   "js": "return { x2: R.game.S.boosts.incomeX2End > Date.now(), adOpen: R.sdk.adOpen };"
+  },
+  {
+   "shot": "ya.png"
+  },
+  {
+   "sleep": 2500
+  },
+  {
+   "js": "const i=document.querySelector(\"#ADV_BANNER img\"); if(i) i.click(); return !!i;",
+   "name": "closeAd",
+   "sleep": 1500
+  },
+  {
+   "name": "afterClose",
+   "js": "return { x2: R.game.S.boosts.incomeX2End > Date.now(), adOpen: R.sdk.adOpen, ads: R.game.S.stats.ads };"
+  },
+  {
+   "js": "R.game.S.stats.playMs = 400000; const dn=Date.now; Date.now=()=>dn()+200000; R.sdk.showInterstitial().then(v => { window.__inter = v; }); Date.now=dn; return R.sdk.adOpen;",
+   "name": "interstitial",
+   "sleep": 1500
+  },
+  {
+   "shot": "ya-inter.png"
+  },
+  {
+   "sleep": 2500
+  },
+  {
+   "js": "const i=document.querySelector(\"#ADV_BANNER img\"); if(i) i.click(); return !!i;",
+   "name": "closeInter",
+   "sleep": 1500
+  },
+  {
+   "name": "afterInter",
+   "js": "return { adOpen: R.sdk.adOpen, shown: window.__inter };"
+  },
+  {
+   "name": "cloud",
+   "js": "const d = await R.sdk.player.getData(['save']); return d && d.save ? { level: d.save.level, coins: Math.round(d.save.coins) } : d;"
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+{
+  "out": "out",
+  "steps": [
+    { "size": [390, 844, 1, true] },
+    { "open": "http://127.0.0.1:8934/index.html", "wait": 1500 },
+    { "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=52; s.coins=1e5; s.helpers=[12,26,26,26,10,1]; s.hints={tap:1,upgrade:1,helper:1,release:1,comet:1,goals:1,gift:1}; s.stats.playMs=1e6; s.savedAt=Date.now(); localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();", "sleep": 1500 },
+    { "js": "document.getElementById('btn-play').click();", "sleep": 2500 },
+    { "shot": "a0.png" }, { "sleep": 180, "shot": "a1.png" }, { "sleep": 180, "shot": "a2.png" },
+    { "sleep": 180, "shot": "a3.png" }, { "sleep": 180, "shot": "a4.png" }, { "sleep": 180, "shot": "a5.png" },
+    { "js": "document.querySelector('.tab[data-tab=helpers]').click(); await new Promise(r=>setTimeout(r,300)); R.game.addCoins(1e9); document.querySelector('[data-a=\"hire:3\"]').click(); document.querySelector('.tab[data-tab=helpers]').click();", "sleep": 250, "shot": "a6.png" },
+    { "sleep": 250, "shot": "a7.png" }
+  ]
+}

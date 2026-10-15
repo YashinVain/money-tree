@@ -1,0 +1,54 @@
+{
+ "out": "out",
+ "steps": [
+  {
+   "size": [
+    390,
+    844,
+    2,
+    true
+   ]
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=100; s.bestLevel=120; s.coins=1e12; s.helpers=[60,50,50,50,40,60]; s.hints={tap:1,upgrade:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.gift={lastDay:R.util.dayKey(Date.now()),streak:1}; s.stats.playMs=1e6; s.savedAt=Date.now(); localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click();",
+   "sleep": 1500
+  },
+  {
+   "sleep": 2500
+  },
+  {
+   "name": "per-tab-ms",
+   "js": "const out={}; for (const t of ['tree','helpers','flowers','garden','bonus','tree']) { const t0=performance.now(); document.querySelector('.tab[data-tab='+t+']').click(); document.body.offsetHeight; const t1=performance.now(); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); out[t]=[Math.round(t1-t0), Math.round(performance.now()-t1)]; } return out;"
+  },
+  {
+   "name": "per-tab-ms-2nd",
+   "js": "const out={}; for (const t of ['tree','helpers','flowers','garden','bonus','tree']) { const t0=performance.now(); document.querySelector('.tab[data-tab='+t+']').click(); document.body.offsetHeight; const t1=performance.now(); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); out[t]=[Math.round(t1-t0), Math.round(performance.now()-t1)]; } return out;"
+  },
+  {
+   "name": "frame-sheet-open-ms",
+   "js": "const f=[]; let last=performance.now(); await new Promise(r=>{ let n=0; function s(t){ f.push(t-last); last=t; if(++n<60) requestAnimationFrame(s); else r(); } requestAnimationFrame(s); }); f.sort((a,b)=>a-b); return {med: Math.round(f[30]), p95: Math.round(f[57])};"
+  },
+  {
+   "name": "profile-render",
+   "js": "const UI=R.ui; const t0=performance.now(); for(let i=0;i<20;i++) UI.renderPanel && UI.renderPanel(true); return Math.round((performance.now()-t0)/20*10)/10 + ' ms/render';"
+  },
+  {
+   "cpu": 6
+  },
+  {
+   "name": "per-tab-6x-3rd",
+   "js": "const out={}; for (const t of ['tree','helpers','flowers','garden','bonus','tree']) { const t0=performance.now(); document.querySelector('.tab[data-tab='+t+']').click(); document.body.offsetHeight; const t1=performance.now(); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); out[t]=[Math.round(t1-t0), Math.round(performance.now()-t1)]; } return out;"
+  },
+  {
+   "cpu": 1
+  }
+ ]
+}

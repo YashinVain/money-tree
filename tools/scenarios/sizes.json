@@ -1,0 +1,18 @@
+{
+  "out": "out",
+  "steps": [
+    { "size": [320, 568, 2, true] },
+    { "open": "http://127.0.0.1:8934/index.html", "wait": 1500 },
+    { "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=50; s.coins=2e6; s.helpers=[20,15,8,2,0,0]; s.hints={tap:1}; s.stats.playMs=1e6; s.savedAt=Date.now(); localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();", "sleep": 1500 },
+    { "shot": "z1-title-320.png" },
+    { "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click();", "sleep": 1500, "shot": "z2-game-320.png" },
+    { "js": "document.querySelector('.tab[data-tab=helpers]').click();", "sleep": 700, "shot": "z3-helpers-320.png" },
+    { "js": "document.querySelector('.tab[data-tab=bonus]').click();", "sleep": 700, "shot": "z4-bonus-320.png" },
+    { "size": [740, 360, 2, true] },
+    { "js": "window.dispatchEvent(new Event('resize'));", "sleep": 1200, "shot": "z5-land-phone.png" },
+    { "js": "document.querySelector('.tab[data-tab=tree]').click();", "sleep": 700, "shot": "z6-land-tree.png" },
+    { "js": "document.getElementById('btn-settings').click();", "sleep": 700, "shot": "z7-land-settings.png" },
+    { "size": [1600, 800, 1, false] },
+    { "js": "document.querySelectorAll('.modal [data-a=close]').forEach(b=>b.click()); window.dispatchEvent(new Event('resize'));", "sleep": 1200, "shot": "z8-wide.png" }
+  ]
+}

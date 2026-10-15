@@ -1,0 +1,10 @@
+{
+  "out": "../../docs/promo",
+  "steps": [
+    { "size": [512, 512, 1, false] },
+    { "open": "http://127.0.0.1:8934/tools/promo.html?kind=icon", "wait": 1200, "shot": "icon-512.png" },
+    { "size": [800, 470, 1, false] },
+    { "open": "http://127.0.0.1:8934/tools/promo.html?kind=cover&lang=ru", "wait": 1200, "shot": "cover-800x470-ru.png" },
+    { "open": "http://127.0.0.1:8934/tools/promo.html?kind=cover&lang=en", "wait": 1200, "shot": "cover-800x470-en.png" }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+ "out": "out-ya",
+ "steps": [
+  {
+   "size": [
+    1280,
+    720,
+    1,
+    false
+   ]
+  },
+  {
+   "open": "https://localhost:8952/index.html",
+   "wait": 4000
+  },
+  {
+   "js": "document.getElementById('btn-play').click();",
+   "sleep": 1200
+  },
+  {
+   "js": "R.sdk.showRewarded(()=>{ window.__rew = true; }).then(v => { window.__done = v; });",
+   "sleep": 1500
+  },
+  {
+   "name": "probe",
+   "js": "const b=document.getElementById('ADV_BANNER'); return b ? b.innerHTML.slice(0,900) : null;"
+  }
+ ]
+}

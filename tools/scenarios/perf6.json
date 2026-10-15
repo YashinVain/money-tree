@@ -1,0 +1,16 @@
+{
+  "out": "out",
+  "steps": [
+    { "size": [390, 844, 2, true] },
+    { "open": "http://127.0.0.1:8934/index.html", "wait": 1500 },
+    { "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=100; s.bestLevel=120; s.coins=1e12; s.helpers=[60,50,50,50,40,60]; s.hints={tap:1,upgrade:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.gift={lastDay:R.util.dayKey(Date.now()),streak:1}; s.stats.playMs=1e6; s.savedAt=Date.now(); localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();", "sleep": 1500 },
+    { "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click();", "sleep": 1500 },
+    { "js": "window.measure = async (ms, act) => { const f=[]; let last=performance.now(); let run=true; const iv = act ? setInterval(act, 90) : 0; await new Promise(r => { function step(n){ f.push(n-last); last=n; if(performance.now()-t0<ms) requestAnimationFrame(step); else r(); } const t0=performance.now(); requestAnimationFrame(step); }); clearInterval(iv); f.sort((a,b)=>a-b); return { fps: Math.round(1000*f.length/ms), p95: Math.round(f[Math.floor(f.length*0.95)]), worst: Math.round(f[f.length-1]) }; }; window.tapAct = () => { const p=R.scene.treePoint(); document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x,clientY:p.y,bubbles:true})); }; let ti=0; window.tabAct = () => { const tabs=['tree','helpers','flowers','garden','bonus']; document.querySelector('.tab[data-tab='+tabs[ti++%5]+']').click(); };" },
+    { "cpu": 6 },
+    { "name": "idle-6x", "js": "return await measure(3000);" },
+    { "name": "taps-shower-6x", "js": "R.game.applyAdReward('shower'); return await measure(3000, tapAct);" },
+    { "name": "tabs-6x", "js": "return await measure(3000, tabAct);" },
+    { "name": "dpr-after", "js": "return devicePixelRatio + ' / canvas ' + document.getElementById('scene').width;" },
+    { "cpu": 1 }
+  ]
+}

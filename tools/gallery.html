@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Галерея графики</title>
+<style>
+    body { margin: 0; background: linear-gradient(#bfe6ff, #e8f7d8); font-family: system-ui, sans-serif; }
+    canvas { display: block; }
+</style>
+</head>
+<body>
+<!-- Страница для проверки рисунков: деревья всех стадий, зверята, цветы, мелочи -->
+<canvas id="c"></canvas>
+<script src="../js/core/util.js"></script>
+<script src="../js/view/paint.js"></script>
+<script src="../js/view/tree.js"></script>
+<script src="../js/view/critters.js"></script>
+<script src="../js/view/flowers.js"></script>
+<script>
+    const cv = document.getElementById('c');
+    const W = 1600, H = 1500;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = W * dpr; cv.height = H * dpr;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    const ctx = cv.getContext('2d');
+    const sprites = [];
+    for (let s = 0; s < 8; s++) {
+        sprites.push([0, 1].map(p => R.tree.makeSprite(s, p * 0.999, 0.7 * dpr)));
+    }
+    const critters = ['bee', 'hedgehog', 'squirrel', 'bunny', 'owl', 'dragon'];
+    const flowers = ['sunflower', 'bluebell', 'dandelion', 'clover', 'rose', 'lavender', 'lotus', 'rainbowflower'];
+    function frame(ms) {
+        const t = ms / 1000;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#7cc96a';
+        ctx.fillRect(0, 380, W, 8);
+        ctx.fillRect(0, 760, W, 8);
+        sprites.forEach((pair, s) => {
+            pair.forEach((sp, j) => {
+                const x = 100 + s * 190 + (j ? 0 : 0);
+                const y = j ? 760 : 380;
+                ctx.drawImage(sp.canvas, x - sp.ox / dpr, y - sp.oy / dpr, sp.canvas.width / dpr, sp.canvas.height / dpr);
+            });
+        });
+        critters.forEach((id, i) => {
+            ctx.save();
+            ctx.translate(120 + i * 200, 900);
+            R.critters.draw(id, ctx, 90, t, i, (t % 1));
+            ctx.restore();
+        });
+        flowers.forEach((id, i) => {
+            ctx.save();
+            ctx.translate(100 + i * 170, 1150);
+            R.flowers.draw(id, ctx, 110, t);
+            ctx.restore();
+        });
+        R.paint.coin(ctx, 120, 1300, 34, t * 0.5);
+        R.paint.goldSeed(ctx, 220, 1300, 30);
+        R.paint.butterfly(ctx, 340, 1300, 50, t * 3);
+        R.paint.sparkle(ctx, 440, 1300, 22, '#ffe066');
+        R.paint.rainbowArc(ctx, 700, 1420, 150, 12, (t * 0.2) % 1, 1, 0.6);
+        requestAnimationFrame(frame);
+    }
+    const cloud = R.paint.cloudSprite(260, 3);
+    requestAnimationFrame(frame);
+    setTimeout(() => { ctx.drawImage(cloud, 1000, 1250); }, 100);
+</script>
+</body>
+</html>

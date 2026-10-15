@@ -1,0 +1,9 @@
+{
+  "out": "out-ya",
+  "steps": [
+    { "size": [800, 600, 1, false] },
+    { "open": "https://localhost:8963/index.html", "wait": 5000 },
+    { "name": "tag", "js": "const r = await new Promise(res => { const s = document.createElement('script'); s.src = '/sdk.js?x=' + Date.now(); s.onload = () => res('load ' + typeof YaGames); s.onerror = (e) => res('error'); document.head.appendChild(s); setTimeout(() => res('timeout ' + typeof YaGames), 4000); }); return r;" },
+    { "name": "errs", "js": "return window.__errs || null;" }
+  ]
+}

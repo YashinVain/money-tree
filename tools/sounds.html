@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Звуки игры</title>
+<!-- Пульт звуков «Денежного дерева»: каждый звук игры по кнопке и музыка для каждой стадии.
+     Открыть двойным кликом (или http://127.0.0.1:8934/tools/sounds.html). Звук синтезируется
+     в js/core/audio.js — файлов со звуками в игре нет. -->
+<style>
+    @font-face { font-family: "Nunito"; font-weight: 200 1000; src: url("../fonts/nunito-cyrillic.woff2") format("woff2"); unicode-range: U+0400-045F, U+2116; }
+    @font-face { font-family: "Nunito"; font-weight: 200 1000; src: url("../fonts/nunito-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F; }
+    :root { --ink: #5a3a1f; --soft: #8a6a4a; --paper: #fff8ec; --line: #f0dfc0; --green: #5cc94a; --gold: #ffc533; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif; background: linear-gradient(#8fd3ff, #c9f0ff 40%, #9be27a); min-height: 100vh; color: var(--ink); padding: 16px; }
+    main { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 28px; font-weight: 1000; margin: 8px 0 4px; }
+    p.lead { color: var(--soft); font-weight: 700; margin-bottom: 14px; }
+    section { background: var(--paper); border: 3px solid #fff; border-radius: 22px; padding: 14px; margin-bottom: 14px; box-shadow: 0 6px 18px rgba(90, 58, 31, 0.15); }
+    h2 { font-size: 19px; font-weight: 1000; margin-bottom: 10px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+    button { font: inherit; border: 0; cursor: pointer; text-align: left; border-radius: 14px; padding: 10px 12px; background: #fff; box-shadow: 0 3px 0 var(--line); color: var(--ink); min-height: 56px; }
+    button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+    button b { display: block; font-weight: 900; font-size: 16px; }
+    button span { display: block; font-size: 13px; color: var(--soft); font-weight: 700; margin-top: 2px; }
+    button.on { background: #e4f8d8; box-shadow: 0 3px 0 #b6e29e; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .row button { flex: 1 1 130px; text-align: center; }
+    .note { font-size: 14px; color: var(--soft); font-weight: 700; margin-top: 10px; }
+</style>
+</head>
+<body>
+<main>
+    <h1>Звуки «Денежного дерева»</h1>
+    <p class="lead">Нажимай кнопки и слушай. Все звуки рождаются прямо в браузере — в игре нет ни одного звукового файла.</p>
+
+    <section>
+        <h2>Музыка</h2>
+        <div class="row">
+            <button id="music"><b>Включить музыку</b><span>тихий фон, меняется по стадиям</span></button>
+        </div>
+        <p class="note">Тональность музыки зависит от стадии дерева:</p>
+        <div class="row" id="eras"></div>
+    </section>
+
+    <section>
+        <h2>Звуки игры</h2>
+        <div class="grid" id="sfx"></div>
+        <p class="note">Если звука нет — проверь громкость и что вкладка не выключена. Отзыв лучше давать так: «звук X — слишком громкий / резкий / скучный / не подходит».</p>
+    </section>
+</main>
+
+<script src="../js/core/util.js"></script>
+<script src="../js/core/audio.js"></script>
+<script>
+    const A = R.audio;
+    A.musicOn = false;
+
+    const SFX = [
+        ['tap', 'Тап по дереву', 'обычный тап — ноты складываются в мелодию', () => A.tap(false)],
+        ['tap8', 'Восемь тапов подряд', 'так звучат быстрые тапы', () => { for (let i = 0; i < 8; i++) setTimeout(() => A.tap(false), i * 130); }],
+        ['crit', 'Золотой тап', 'редкий тап x5', () => A.tap(true)],
+        ['autoTap', 'Монетка от зверька', 'тихий звук дохода зверят', () => A.autoTap()],
+        ['buy', 'Покупка', 'вырастить дерево, нанять зверька', () => A.buy()],
+        ['buyBig', 'Большая покупка', 'кнопка «Макс»', () => A.buyBig()],
+        ['deny', 'Не хватает монет', 'нажатие на недоступную кнопку', () => A.deny()],
+        ['click', 'Кнопка', 'вкладки, настройки, закрыть', () => A.click()],
+        ['open', 'Окно открылось', 'окна и цели', () => A.open()],
+        ['ready', 'Радуга готова', 'радуга наполнилась, новое украшение', () => A.ready()],
+        ['release', 'Радужный дождь', 'нажатие «Радуга!»', () => A.release()],
+        ['buffEnd', 'Дождь закончился', 'конец бонуса радуги', () => A.buffEnd()],
+        ['era', 'Новая стадия дерева', 'дерево выросло', () => A.era()],
+        ['freq', 'Новый цветок', 'в саду распустился цветок', () => A.freq()],
+        ['cometAppear', 'Прилетела бабочка', 'золотая бабочка появилась', () => A.cometAppear()],
+        ['cometCatch', 'Бабочка поймана', 'тап по бабочке', () => A.cometCatch()],
+        ['achievement', 'Достижение', 'достижение или веха зверька', () => A.achievement()],
+        ['reward', 'Награда', 'подарок, копилка, задание, корзинка', () => A.reward()],
+        ['prestige', 'Новый сад', 'посадить новый сад', () => A.prestige()]
+    ];
+    const STAGES = ['Семечко', 'Росток', 'Саженец', 'Деревце', 'Цветущее', 'Яблоня', 'Волшебное', 'Древо Мира'];
+
+    const sfx = document.getElementById('sfx');
+    SFX.forEach(([id, name, hint, fn]) => {
+        const b = document.createElement('button');
+        b.innerHTML = `<b>${name}</b><span>${hint}</span>`;
+        b.onclick = () => { A.unlock(); fn(); };
+        sfx.appendChild(b);
+    });
+
+    const eras = document.getElementById('eras');
+    STAGES.forEach((name, i) => {
+        const b = document.createElement('button');
+        b.innerHTML = `<b>${name}</b>`;
+        b.onclick = () => {
+            A.unlock();
+            A.setEra(i);
+            eras.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+            if (!A.musicOn) toggleMusic();
+        };
+        eras.appendChild(b);
+    });
+
+    const musicBtn = document.getElementById('music');
+    function toggleMusic() {
+        A.unlock();
+        A.setMusic(!A.musicOn);
+        musicBtn.classList.toggle('on', A.musicOn);
+        musicBtn.querySelector('b').textContent = A.musicOn ? 'Выключить музыку' : 'Включить музыку';
+    }
+    musicBtn.onclick = toggleMusic;
+</script>
+</body>
+</html>

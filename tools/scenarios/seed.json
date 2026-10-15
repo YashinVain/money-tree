@@ -1,0 +1,20 @@
+{
+  "out": "out",
+  "steps": [
+    { "size": [390, 844, 2, true] },
+    { "open": "http://127.0.0.1:8934/index.html", "wait": 1500 },
+    { "js": "localStorage.clear(); location.reload();", "sleep": 1500 },
+    { "js": "document.getElementById('btn-play').click(); R.game.S.hints.tap=1;", "sleep": 900 },
+    { "shot": "s0.png" },
+    { "js": "R.main.debug.level(20); R.game.S.helpers=[3,0,0,0,0,0];", "sleep": 1400, "shot": "s1.png" },
+    { "js": "R.main.debug.level(36); R.game.S.helpers=[12,3,0,0,0,0];", "sleep": 1400, "shot": "s2.png" },
+    { "js": "R.main.debug.level(50); R.game.S.helpers=[25,12,4,1,0,0];", "sleep": 1400, "shot": "s3.png" },
+    { "js": "R.main.debug.level(66); R.game.S.helpers=[30,25,12,4,1,0]; R.game.S.hints.prestige=1;", "sleep": 1400, "shot": "s4.png" },
+    { "js": "R.main.debug.level(80); R.game.S.helpers=[40,30,25,12,4,1];", "sleep": 1400, "shot": "s5.png" },
+    { "js": "R.main.debug.level(96);", "sleep": 1400, "shot": "s6.png" },
+    { "js": "R.main.debug.level(112);", "sleep": 1400, "shot": "s7.png" },
+    { "size": [1280, 720, 1, false] },
+    { "js": "window.dispatchEvent(new Event('resize'));", "sleep": 1400, "shot": "d7.png" },
+    { "js": "R.main.debug.level(5); R.game.S.helpers=[2,0,0,0,0,0];", "sleep": 1400, "shot": "d0.png" }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "out": "out",
+  "steps": [
+    { "size": [390, 844, 2, true] },
+    { "open": "http://127.0.0.1:8934/index.html", "wait": 2000 },
+    { "name": "fonts", "js": "await document.fonts.ready; return [...document.fonts].map(f => f.family + ' ' + f.status + ' ' + f.unicodeRange.slice(0,12)); " },
+    { "name": "used", "js": "return document.fonts.check('900 20px Nunito', 'Денежное дерево') + ' / ' + getComputedStyle(document.body).fontFamily.slice(0,30);" },
+    { "shot": "f1-title.png" }
+  ]
+}

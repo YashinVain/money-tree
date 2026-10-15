@@ -3,31 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Резонанс</title>
+    <meta name="theme-color" content="#8fd3ff">
+    <title>Денежное дерево</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='20' y='26' width='8' height='16' rx='3' fill='%23a8703f'/%3E%3Ccircle cx='24' cy='20' r='14' fill='%236fcf4f'/%3E%3Ccircle cx='24' cy='20' r='6' fill='%23ffd23f'/%3E%3C/svg%3E">
+    <link rel="preload" href="fonts/nunito-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="fonts/nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%94%8A</text></svg>">
 </head>
-<body>
-    <div id="game-container"></div>
+<body class="portrait on-title">
+    <!-- Сад рисуется на холсте во весь экран, интерфейс лежит поверх -->
+    <canvas id="scene"></canvas>
 
-    <script src="https://yandex.ru/games/sdk/v2"></script>
+    <div id="app">
+        <div id="hud">
+            <div class="hud-left">
+                <div class="pill coins">
+                    <span id="coin-ico"></span>
+                    <span><b class="num" id="coins">0</b><span class="sub" id="cps"></span></span>
+                </div>
+                <div class="pill seeds hidden">
+                    <span id="seed-ico"></span><b class="num" id="seeds">0</b>
+                </div>
+            </div>
+            <div class="hud-right">
+                <button class="round-btn" id="btn-goals" aria-label="goals"></button>
+                <button class="round-btn" id="btn-settings" aria-label="settings"></button>
+            </div>
+        </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+        <div id="stage-chip"><span class="ci"></span><span class="cn"></span><span class="mini"><i></i></span></div>
 
-    <script src="js/sdk.js"></script>
-    <script src="js/i18n.js"></script>
-    <script src="js/audio.js"></script>
-    <script src="js/save.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/buttons.js"></script>
-    <script src="js/upgrades.js"></script>
-    <script src="js/helpers.js"></script>
-    <script src="js/frequencies.js"></script>
-    <script src="js/prestige.js"></script>
-    <script src="js/offline.js"></script>
-    <script src="js/tutorial.js"></script>
-    <script src="js/click.js"></script>
-    <script src="js/resonance.js"></script>
+        <div id="controls">
+            <div id="offers"></div>
+            <div id="status"></div>
+            <div class="controls-row">
+                <button id="btn-grow" class="btn"></button>
+                <button id="btn-rainbow"><span class="fill"></span><span class="label"></span></button>
+            </div>
+        </div>
+
+        <section id="panel">
+            <div class="panel-head">
+                <div class="grow panel-title"></div>
+                <button class="round-btn close-btn" aria-label="close"></button>
+            </div>
+            <div class="panel-body"></div>
+        </section>
+
+        <nav id="tabs"></nav>
+
+        <div id="modals"></div>
+        <div id="toasts"></div>
+        <div id="hint" class="hidden"></div>
+        <div id="hand" class="hidden"></div>
+    </div>
+
+    <!-- Надписи заставки сразу на языке браузера (до загрузки SDK) -->
+    <script>
+        (function () {
+            var en = !/^(ru|be|kk|uk|uz)/i.test(navigator.language || 'ru');
+            if (en) {
+                document.documentElement.lang = 'en';
+                document.title = 'Money Tree';
+                window.__titleEn = true;
+            }
+        })();
+    </script>
+
+    <div id="title">
+        <div class="logo">
+            <h1 id="title-h1">Денежное дерево</h1>
+            <p></p>
+        </div>
+        <div class="title-bottom">
+            <div id="loading-text">Загрузка…</div>
+            <script>
+                if (window.__titleEn) {
+                    document.getElementById('title-h1').textContent = 'Money Tree';
+                    document.getElementById('loading-text').textContent = 'Loading…';
+                }
+            </script>
+            <button id="btn-play" class="btn big hidden">Играть</button>
+        </div>
+    </div>
+
+    <!-- Порядок важен: сначала базовые модули, потом логика, графика, интерфейс -->
+    <script src="js/core/util.js"></script>
+    <script src="js/core/i18n.js"></script>
+    <script src="js/core/sdk.js"></script>
+    <script src="js/core/audio.js"></script>
+    <script src="js/game/config.js"></script>
+    <script src="js/game/game.js"></script>
+    <script src="js/game/meta.js"></script>
+    <script src="js/game/save.js"></script>
+    <script src="js/view/paint.js"></script>
+    <script src="js/view/tree.js"></script>
+    <script src="js/view/critters.js"></script>
+    <script src="js/view/flowers.js"></script>
+    <script src="js/view/decor.js"></script>
+    <script src="js/view/scene.js"></script>
+    <script src="js/ui/icons.js"></script>
+    <script src="js/ui/ui.js"></script>
+    <script src="js/ui/panels.js"></script>
+    <script src="js/ui/hints.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>
