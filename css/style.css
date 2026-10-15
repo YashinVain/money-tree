@@ -40,6 +40,8 @@
     --s: 1;                  /* общий масштаб интерфейса (ставится из JS) */
     --safe-b: env(safe-area-inset-bottom, 0px);
     --safe-t: env(safe-area-inset-top, 0px);
+    --safe-l: env(safe-area-inset-left, 0px);
+    --safe-r: env(safe-area-inset-right, 0px);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -83,7 +85,7 @@ svg { display: block; width: 100%; height: 100%; }
 #hud {
     position: absolute;
     top: calc(8px + var(--safe-t));
-    left: 10px;
+    left: calc(10px + var(--safe-l));
     right: 10px;
     display: flex;
     align-items: flex-start;
@@ -228,6 +230,12 @@ svg { display: block; width: 100%; height: 100%; }
     animation: popIn 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 .offer .ico { width: 22px; height: 22px; }
+.offer { position: absolute; transform: translateX(-50%); z-index: 4; white-space: nowrap; max-width: calc(100vw - 24px); }
+.offer.arming { opacity: 0.75; }
+/* Кнопка «за рекламу» в окнах — вторая и спокойнее главной «Забрать» */
+.btn.ad-alt { background: #fff; color: #2b84c9; box-shadow: 0 4px 0 #b9dcf5, inset 0 0 0 2px #b9dcf5; text-shadow: none; }
+.modal-actions .btn.big.ad-alt { min-height: 46px; font-size: 16px; }
+.btn.ad-alt .ico { color: #2b84c9; }
 .offer .offer-bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: rgba(255,255,255,0.8); transform-origin: left; animation: offerBar var(--offer-ms, 6000ms) linear forwards; }
 @keyframes offerBar { to { transform: scaleX(0); } }
 
@@ -271,7 +279,7 @@ svg { display: block; width: 100%; height: 100%; }
     color: var(--ink);
     text-shadow: 0 0 4px #fff, 0 0 8px rgba(255, 255, 255, 0.9);
 }
-#btn-rainbow.ready, #btn-rainbow.buff { color: #fff; text-shadow: 0 2px 0 rgba(90, 58, 31, 0.6), 0 0 6px rgba(90, 58, 31, 0.35); }
+#btn-rainbow.ready, #btn-rainbow.buff { color: #fff; text-shadow: 0 2px 0 rgba(90, 58, 31, 0.75), 0 0 3px rgba(90, 58, 31, 0.8), 0 0 10px rgba(90, 58, 31, 0.45); -webkit-text-stroke: 1px rgba(90, 58, 31, 0.35); }
 #btn-rainbow .fill {
     position: absolute;
     left: 0; top: 0; bottom: 0;
@@ -384,7 +392,7 @@ svg { display: block; width: 100%; height: 100%; }
 /* Раскладка компьютера */
 .landscape #panel {
     top: 10px;
-    right: 10px;
+    right: calc(10px + var(--safe-r));
     bottom: 10px;
     width: var(--panel-w, 420px);
     border-radius: 26px;
@@ -392,7 +400,7 @@ svg { display: block; width: 100%; height: 100%; }
 }
 .landscape #tabs {
     top: 13px;
-    right: 13px;
+    right: calc(13px + var(--safe-r));
     width: calc(var(--panel-w, 420px) - 6px);
     height: calc(var(--tabbar) - 6px);
     border: 0;
@@ -401,7 +409,15 @@ svg { display: block; width: 100%; height: 100%; }
     box-shadow: none;
     padding: 4px;
 }
-.landscape .panel-head .close-btn { display: none; }
+/* Свёрнутая боковая панель: остаётся только полоска вкладок, сад — во всю ширину */
+.landscape #panel { transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.05); }
+.landscape:not(.sheet-open) #panel { transform: translateX(calc(100% + 30px)); visibility: hidden; transition: transform 0.3s, visibility 0s 0.3s; }
+.landscape:not(.sheet-open) #tabs { border-radius: 23px; border-bottom: 0; box-shadow: var(--shadow); }
+.landscape:not(.sheet-open) #controls { left: 50%; }
+.landscape:not(.sheet-open) #controls .controls-row { max-width: calc(100vw - 40px); }
+.landscape:not(.sheet-open) #toasts { left: 50%; }
+/* Открыта вкладка «Дерево» на телефоне — в панели своя большая кнопка «Вырастить» */
+.portrait.sheet-open[data-tab="tree"] #btn-grow { display: none; }
 .landscape #hud { right: calc(var(--panel-w, 420px) + 20px); }
 .landscape #controls .controls-row { max-width: calc(100vw - var(--panel-w, 420px) - 40px); }
 .landscape #controls #btn-rainbow { width: clamp(160px, 22vw, 300px); }
@@ -802,4 +818,27 @@ svg { display: block; width: 100%; height: 100%; }
     :root { --tabbar: 60px; }
     .tab span { display: none; }
     #stage-chip { display: none; }
+}
+
+/* Окно «Посадить новый сад?»: что останется и что начнётся заново */
+.keep-reset { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 2px; text-align: left; }
+.keep-reset .kr { border-radius: 14px; padding: 9px 10px; font-size: 14px; font-weight: 700; line-height: 1.25; }
+.keep-reset .keep { background: #e8f8dc; color: #2f6b1f; }
+.keep-reset .reset { background: #fff1d6; color: #7a4a12; }
+.keep-reset b { display: flex; align-items: center; gap: 5px; font-weight: 900; font-size: 15px; margin-bottom: 4px; }
+.keep-reset b svg { width: 18px; height: 18px; flex: none; }
+.keep-reset ul { padding-left: 16px; display: grid; gap: 2px; }
+@media (max-width: 360px) { .keep-reset { grid-template-columns: 1fr; } }
+
+/* Пальцем удобно: всё нажимаемое — не меньше 44 px, текст — не мельче 12–13 px */
+.seg button { min-height: 44px; padding: 5px 14px; }
+.panel-head .round-btn { width: 48px; height: 48px; padding: 11px; }
+.round-btn { min-width: 44px; min-height: 44px; }
+.tab { font-size: max(12px, calc(12.5px * var(--s))); }
+.bar span { font-size: 13px; }
+.streak div { font-size: 13px; }
+
+/* Телефон боком: всплывашки — над панелью, а не на маленькой кроне */
+@media (max-height: 520px) {
+    .landscape.sheet-open #toasts { left: auto; right: 14px; transform: none; width: calc(var(--panel-w, 300px) - 8px); top: calc(var(--tabbar) + 16px); }
 }

@@ -195,7 +195,7 @@ test('бабочка всегда даёт награду', () => {
     eq(G.S.stats.comets, 50);
 });
 
-test('реклама: x2 копится до 4 часов', () => {
+test('реклама: x2 копится, но не больше часа', () => {
     for (let i = 0; i < 30; i++) if (G.adAvailable('incomeX2')) G.applyAdReward('incomeX2');
     ok(G.S.boosts.incomeX2End - clock <= CFG.ads.incomeX2.maxMinutes * 60000);
     ok(G.globalMult() >= 2);
@@ -259,9 +259,17 @@ test('подарок дня: серия растёт и сбрасывается
     clock += 86400000;
     eq(M.giftStreakDay(), 2);
     M.claimGift();
+    clock += 2 * 86400000;
+    eq(M.giftStreakDay(), 3, 'один пропущенный день прощается');
+    M.claimGift();
     clock += 3 * 86400000;
-    eq(M.giftStreakDay(), 1, 'пропуск дней — серия заново');
+    eq(M.giftStreakDay(), 1, 'пропуск двух дней — серия заново');
     eq(M.giftSeeds(7), CFG.giftDay7Seeds, 'седьмой день — семена');
+});
+
+test('после седьмого дня подарок остаётся самым большим', () => {
+    for (let d = 0; d < 9; d++) { M.claimGift(); clock += 86400000; }
+    eq(M.giftStreakDay(), 7);
 });
 
 test('достижения открываются по статистике', () => {
@@ -296,6 +304,31 @@ test('достижения, бонусы и подсказки пережива�
     eq(G.S.ach.taps_0, 1);
     eq(G.S.perks.can, 3);
     eq(G.S.hints.tap, 1);
+});
+
+test('сохранение с null и чужими типами внутри не ломает игру', () => {
+    R.save.apply({ v: 3, level: 20, stats: null, boosts: 5, perks: null, ach: [1], hints: 'x', settings: 7, gift: null,
+        daily: { day: '2026-10-14', quests: 'x' }, adReady: null });
+    eq(G.S.level, 20);
+    eq(typeof G.S.stats.taps, 'number');
+    eq(G.S.daily, null, 'битые задания — выдаются заново');
+    eq(G.S.gift.streak, 0);
+    ok(M.ensureDaily(), 'задания создаются');
+    G.tap('player');
+    eq(G.S.stats.taps, 1);
+});
+
+test('нечитаемое сохранение откладывается в резерв, игра начинается заново', () => {
+    R.save.choose({ v: 3, level: 5, get stats() { throw new Error('boom'); } }, null);
+    eq(G.S.level, 0);
+    ok(G.S.freeChestAt > G.now(), 'новичку корзинка — не сразу');
+});
+
+test('зверята приносят монетки, пока открыто окно', () => {
+    G.S.helpers[0] = 10;
+    const before = G.S.coins;
+    G.tickIdle(10);
+    ok(G.S.coins > before);
 });
 
 test('битое сохранение не ломает игру', () => {

@@ -94,6 +94,10 @@
         const g = ctx.createRadialGradient(0, 0, 2 * k, 0, 0, 16 * k);
         g.addColorStop(0, 'rgba(255,255,255,0.95)');
         g.addColorStop(1, 'rgba(255,255,255,0.15)');
+        // тёплая серо-голубая тень под пушком — одуванчик виден и на светлом фоне
+        ctx.fillStyle = 'rgba(120,140,170,0.28)';
+        P.circle(ctx, 0.8 * k, 1.2 * k, 17.5 * k);
+        ctx.fill();
         ctx.fillStyle = g;
         P.circle(ctx, 0, 0, 16 * k);
         ctx.fill();
@@ -108,6 +112,11 @@
             ctx.fillStyle = '#ffffff';
             P.circle(ctx, Math.cos(a) * 15 * k, Math.sin(a) * 15 * k, 1.6 * k);
             ctx.fill();
+            ctx.strokeStyle = 'rgba(110,130,160,0.55)';
+            ctx.lineWidth = 0.7 * k;
+            ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+            ctx.lineWidth = 1 * k;
         }
         ctx.fillStyle = '#e8d870';
         P.circle(ctx, 0, 0, 3 * k);

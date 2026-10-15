@@ -29,6 +29,11 @@
     let pendingFlush = false;
     let cloudTimer = null;
 
+    // Обещание с ограничением по времени: зависший вызов SDK не должен оставить
+    // игрока на экране загрузки навсегда
+    const withTimeout = (p, ms, fallback) => Promise.race([p, new Promise(r => setTimeout(() => r(fallback), ms))]);
+    const TIMEOUT = {};
+
     // /sdk.js: на Яндексе он есть. Если файла нет, браузер сразу сообщит об ошибке;
     // ожидание с запасом — на случай медленного интернета или локального прокси
     function loadScript() {
@@ -49,7 +54,8 @@
         const ok = await loadScript();
         if (ok) {
             try {
-                SDK.ysdk = await root.YaGames.init();
+                SDK.ysdk = await withTimeout(root.YaGames.init(), 8000, TIMEOUT);
+                if (SDK.ysdk === TIMEOUT) throw new Error('YaGames.init: нет ответа 8 с');
                 SDK.ready = true;
                 const env = SDK.ysdk.environment;
                 SDK.lang = env && env.i18n && env.i18n.lang;
@@ -74,7 +80,7 @@
 
     SDK.loadPlayer = async () => {
         try {
-            SDK.player = await SDK.ysdk.getPlayer();
+            SDK.player = await withTimeout(SDK.ysdk.getPlayer(), 6000, null);
         } catch (e) {
             SDK.player = null;
         }
@@ -132,8 +138,8 @@
             if (rewarded) onReward();
             resolve(rewarded ? 'rewarded' : (errored ? 'error' : 'closed'));
         };
-        // Сторож: если SDK так и не ответил, через 90 секунд игра снова оживёт
-        const watchdog = setTimeout(() => { errored = !rewarded; finish(); }, 300000);
+        // Сторож: если SDK так и не ответил (нет onClose), через 3 минуты игра снова оживёт
+        const watchdog = setTimeout(() => { errored = !rewarded; finish(); }, 180000);
         SDK.adOpen = true;
         R.emit('adOpen');
 
@@ -172,7 +178,7 @@
             R.emit('adClose');
             resolve(shown);
         };
-        const watchdog = setTimeout(() => finish(false), 300000);
+        const watchdog = setTimeout(() => finish(false), 180000);
         SDK.adOpen = true;
         R.emit('adOpen');
         try {
@@ -207,7 +213,8 @@
     SDK.loadCloud = async () => {
         if (!SDK.player || typeof SDK.player.getData !== 'function') return { ok: false, data: null };
         try {
-            const d = await SDK.player.getData(['save']);
+            const d = await withTimeout(SDK.player.getData(['save']), 6000, TIMEOUT);
+            if (d === TIMEOUT) return { ok: false, data: null };
             SDK.cloudOk = true;
             return { ok: true, data: d && d.save ? d.save : null };
         } catch (e) {
@@ -232,7 +239,9 @@
             SDK.player.setData({ save: data }, fl).catch(() => { /* сеть могла пропасть — сохраним в следующий раз */ });
         };
         const wait = Math.max(0, 3500 - (Date.now() - lastCloudCall));
-        if (wait === 0 || (flush && Date.now() - lastCloudCall > 1000)) {
+        // Срочная отправка (уход со страницы) — сразу, но не чаще раза в 10 с:
+        // частое сворачивание не должно упереться в лимит Яндекса
+        if (wait === 0 || (flush && Date.now() - lastCloudCall > 10000)) {
             if (cloudTimer) { clearTimeout(cloudTimer); cloudTimer = null; }
             send();
         } else if (!cloudTimer) cloudTimer = setTimeout(send, wait);
@@ -252,8 +261,13 @@
         } catch (e) { SDK.lbReady = false; }
     };
 
+    let lastScore = -1, lastScoreAt = 0;
     SDK.setScore = (score) => {
         if (!SDK.ysdk || !SDK.ysdk.leaderboards || !SDK.isAuthorized()) return;
+        score = Math.floor(score);
+        if (score === lastScore || Date.now() - lastScoreAt < 2000) return;
+        lastScore = score;
+        lastScoreAt = Date.now();
         try {
             const p = SDK.ysdk.leaderboards.setScore(SDK.LEADERBOARD, Math.floor(score));
             if (p && p.catch) p.catch(() => { });

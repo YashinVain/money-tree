@@ -12,18 +12,18 @@
     // lvl — с какого лучшего уровня появляется; dx — сдвиг от дерева в долях
     // ширины экрана; depth: 0 — на лугу рядом, 1 — на ближнем холме, 2 — вдали
     D.list = [
-        { id: 'mushrooms', lvl: 3, dx: -0.36, depth: 0 },
-        { id: 'stones', lvl: 10, dx: 0.38, depth: 0 },
+        { id: 'mushrooms', lvl: 0, dx: -0.36, depth: 0 },
+        { id: 'stones', lvl: 4, dx: 0.38, depth: 0 },
         { id: 'fence', lvl: 18, dx: -0.42, depth: 1 },
         { id: 'birdhouse', lvl: 26, dx: 0.42, depth: 1 },
         { id: 'pond', lvl: 34, dx: 0.3, depth: 1 },
         { id: 'windmill', lvl: 42, dx: -0.3, depth: 2 },
         { id: 'cottage', lvl: 52, dx: 0.26, depth: 2 },
-        { id: 'lanterns', lvl: 64, dx: -0.22, depth: 1 },
-        { id: 'arch', lvl: 78, dx: 0.16, depth: 2 },
-        { id: 'fountain', lvl: 92, dx: -0.14, depth: 2 },
-        { id: 'island', lvl: 106, dx: -0.3, depth: 3 },
-        { id: 'castle', lvl: 118, dx: 0.36, depth: 3 }
+        { id: 'lanterns', lvl: 61, dx: -0.22, depth: 1 },
+        { id: 'arch', lvl: 70, dx: 0.16, depth: 2 },
+        { id: 'fountain', lvl: 82, dx: -0.14, depth: 2 },
+        { id: 'island', lvl: 96, dx: -0.47, depth: 3 },
+        { id: 'castle', lvl: 110, dx: 0.48, depth: 3 }
     ];
 
     D.unlocked = (best) => D.list.filter(d => best >= d.lvl);

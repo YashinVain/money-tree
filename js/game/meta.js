@@ -121,14 +121,17 @@
     // Подарок доступен только в новый день (если часы перевели назад — нет)
     M.giftAvailable = () => !G.S.gift.lastDay || G.S.gift.lastDay < U.dayKey(G.now());
 
-    // Номер дня серии, который получит игрок, если заберёт подарок сейчас (1..7)
+    // Номер дня серии, который получит игрок, если заберёт подарок сейчас (1..7).
+    // Серия мягкая: один пропущенный день прощается, а после 7-го дня подарок
+    // остаётся самым большим (не сбрасывается на первый)
+    const keepsStreak = (gap) => gap === 1 || gap === 2;
     M.giftStreakDay = () => {
         const today = U.dayKey(G.now());
         const g = G.S.gift;
         if (!g.lastDay) return 1;
-        if (g.lastDay === today) return ((g.streak - 1) % 7) + 1;
+        if (g.lastDay === today) return Math.min(Math.max(1, g.streak), 7);
         const gap = U.daysBetween(g.lastDay, today);
-        return gap === 1 ? (g.streak % 7) + 1 : 1;
+        return keepsStreak(gap) ? Math.min(g.streak + 1, 7) : 1;
     };
 
     M.giftAmount = (day = M.giftStreakDay()) => G.secondsOfIncome(CFG.dailyGiftSeconds[day - 1]);
@@ -140,7 +143,7 @@
         const amount = M.giftAmount(day);
         const today = U.dayKey(G.now());
         const gap = G.S.gift.lastDay ? U.daysBetween(G.S.gift.lastDay, today) : 0;
-        G.S.gift.streak = gap === 1 ? G.S.gift.streak + 1 : 1;
+        G.S.gift.streak = keepsStreak(gap) ? G.S.gift.streak + 1 : 1;
         G.S.gift.lastDay = today;
         G.addCoins(amount);
         const seeds = M.giftSeeds(day);

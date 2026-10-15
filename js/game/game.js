@@ -42,6 +42,7 @@
         pendingAway: 0,       // сколько секунд игрока не было (для окна копилки)
         pendingGift: 0,       // подарок за новую стадию, который ещё не забрали
         playerId: '',         // id игрока Яндекса, чей это сад
+        playerAuthed: false,  // сад вошедшего аккаунта (а не гостя)
         savedAt: 0
     });
 
@@ -361,6 +362,16 @@
             }
         }
         return { passive, taps };
+    };
+
+    // Пока открыто окно (подарок, цели), зверята продолжают работать —
+    // без бонуса радуги (её таймер на это время заморожен)
+    G.tickIdle = (dt) => {
+        dt = Math.min(dt, 120);
+        const passive = G.passiveBase() * G.globalMult() * dt;
+        G.addCoins(passive);
+        G.liveEarned += passive;
+        return passive;
     };
 
     // Сколько принесли зверята с прошлого вызова — для летящих "+N"

@@ -53,13 +53,21 @@
     main.updateGameplay = updateGameplay;
 
     // ---------- Запуск ----------
+    // Шаг запуска: ошибка в одном шаге не должна оставить игру без кнопок
+    async function step(name, fn) {
+        try { await fn(); } catch (e) { console.error('Ошибка при запуске (' + name + '):', e); }
+    }
+
     async function boot() {
-        try {
-            R.scene.init($('#scene'));
-            UI.layout();
+        await step('сцена', () => { R.scene.init($('#scene')); UI.layout(); });
+        await step('SDK', async () => {
             await R.sdk.init();
             if (R.sdk.ready) G.now = () => R.sdk.now();   // время сервера — защита от перевода часов
-            await R.save.load();
+        });
+        await step('сохранение', () => R.save.load());
+        // Что бы ни случилось с сохранением — играть можно
+        if (!G.S || !G.S.stats) R.save.fresh();
+        await step('настройки', () => {
 
             const nav = (navigator.language || 'ru').slice(0, 2);
             const lang = G.S.settings.lang || R.i18n.fromPlatform(R.sdk.lang || nav);
@@ -68,21 +76,22 @@
             R.audio.setSound(G.S.settings.sound);
             R.audio.setMusic(G.S.settings.music);
             R.audio.setEra(G.stageIndex());
-
+        });
+        await step('копилка', () => {
             // Копилка считается сразу при загрузке и хранится в сохранении, пока
             // игрок её не заберёт, — перезагрузка или переключение вкладки её не съедят
             collectAway(G.S.savedAt ? (G.now() - G.S.savedAt) / 1000 : 0);
-
-            M.attach();
-            M.ensureDaily();
-            wireEvents();
-            buildStaticUI();
-            R.hints.init();
-            UI.layout();
-            R.save.flush();
-        } catch (e) {
-            console.error('Ошибка при запуске игры:', e);
-        }
+        });
+        await step('задания', () => { M.attach(); M.ensureDaily(); });
+        await step('события', wireEvents);
+        await step('интерфейс', buildStaticUI);
+        await step('подсказки', () => R.hints.init());
+        await step('раскладка', () => UI.layout());
+        // Шрифт Nunito догрузился — размеры плашек изменились, раскладку пересчитываем
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { try { UI.layout(); } catch (e) { /* не критично */ } });
+        await step('запись', () => R.save.flush());
+        // Портреты для панелей рисуются, пока игрок смотрит на заставку
+        await step('портреты', () => UI.prewarm());
         $('#loading-text').classList.add('hidden');
         $('#btn-play').classList.remove('hidden');
         R.sdk.gameReady();
@@ -124,7 +133,6 @@
         maybeAutoGift();
         updateGameplay();
         R.save.mark();
-        UI.prewarm();
     }
 
     // ---------- Окно копилки ----------
@@ -144,7 +152,7 @@
             const timeStr = h > 0 ? (m > 0 ? t('time_h_m', { h, m }) : t('time_h', { h })) : t('time_m', { m: Math.max(1, m) });
             const full = away > G.offlineCapSec() ? `<p class="small">${t('offline_full', { t: t('time_h', { h: Math.round(G.offlineCapSec() / 3600) }) })}</p>` : '';
             const buttons = [{ label: t('offline_take'), cls: '', action: 'offlineTake' }];
-            if (R.sdk.adsAvailable()) buttons.unshift({ label: `<i class="ico">${R.icon('video')}</i>${t('offline_double')}`, cls: 'blue', action: 'offlineDouble' });
+            if (R.sdk.adsAvailable()) buttons.push({ label: `<i class="ico">${R.icon('video')}</i>${t('offline_double')}`, cls: 'ad-alt', action: 'offlineDouble' });
             UI.celebrate({
                 art: R.icon('piggy'),
                 title: t('offline_title'),
@@ -213,6 +221,7 @@
     }
 
     // ---------- Главный цикл ----------
+    let goalsClock = 0;
     function loop(now) {
         requestAnimationFrame(loop);
         const raw = lastFrame ? (now - lastFrame) / 1000 : 0;
@@ -222,6 +231,8 @@
 
         const active = isActive();
         if (!active && main.playing && !document.hidden) freezeTimers(raw * 1000);
+        // Окно поверх сада: зверята всё равно приносят монетки (кроме рекламы и паузы платформы)
+        if (!active && main.playing && !document.hidden && !main.paused && !R.sdk.adOpen) G.tickIdle(econDt);
         if (active) {
             const res = G.tick(econDt);
             res.taps.forEach((tap, i) => {
@@ -238,6 +249,7 @@
             achTimer += econDt;
             if (achTimer > 1) {
                 achTimer = 0;
+                R.sdk.setScore(G.S.seedsLife);    // таблица лидеров: золотые семена за всё время
                 M.checkAchievements();
                 if (M.ensureDaily()) R.panels.refreshGoals();
             }
@@ -245,6 +257,9 @@
             if (saveTimer > 2) { saveTimer = 0; R.save.mark(); }
         }
         R.scene.paused = !active;
+        // Часы окна «Цели» идут и тогда, когда сад на паузе под окном
+        goalsClock += Math.min(raw, 1);
+        if (goalsClock >= 1) { goalsClock = 0; R.panels.tickGoals(); }
         R.scene.frame(dt);
         UI.frame(dt);
         R.save.update();
@@ -372,12 +387,12 @@
             }).join('');
             enqueue((done) => {
                 const buttons = [{ label: t('take'), cls: '', action: 'stageTake' }];
-                if (R.sdk.adsAvailable()) buttons.unshift({ label: `<i class="ico">${R.icon('video')}</i>${t('take_x2')}`, cls: 'blue', action: 'stageDouble' });
+                if (R.sdk.adsAvailable()) buttons.push({ label: `<i class="ico">${R.icon('video')}</i>${t('take_x2')}`, cls: 'ad-alt', action: 'stageDouble' });
                 const m = UI.celebrate({
                     art: UI.img('stage', r.stage),
                     title: t(r.stage === 1 ? 'stage_up_title_sprout' : 'stage_up_title'),
                     text: t('stage_up_text', { name: t('stage_' + st.id) }) + (st.perk ? `<br><b class="good">${t('perk_stage_' + st.id)}</b>` : ''),
-                    extra: flowerHtml + `<p class="small">${t('stage_gift')}</p>`,
+                    extra: `<p class="small">${t('stage_gift')}</p>` + flowerHtml,
                     big: UI.coinImg() + U.fmt(gift),
                     buttons,
                     noClose: true,
@@ -418,8 +433,10 @@
         R.on('cometAppear', () => R.audio.cometAppear());
         R.on('achievement', (a) => { queueAchievement(a); R.save.mark(); });
         R.on('questDone', () => {
-            UI.toast(t('quest_done_title'), t('quest_done_text'), R.icon('star'));
-            R.audio.ready();
+            if (G.S.hints.goals) {
+                UI.toast(t('quest_done_title'), t('quest_done_text'), R.icon('star'));
+                R.audio.ready();
+            }
             R.panels.refreshGoals();
         });
         R.on('decor', (list) => {
@@ -436,13 +453,18 @@
                 art: UI.seedImg(),
                 title: t('garden_done'),
                 text: t('garden_done_text', { n: r.gained }),
-                onClose: () => { done(); R.sdk.showInterstitial(); }
+                onClose: done
             }));
             R.save.flush();
         });
         R.on('coinArrived', () => UI.bumpCoins());
-        // Нейтральная пауза (игрок сам закрыл Цели/Настройки) — подходящий момент для рекламы
-        R.on('neutralPause', () => R.sdk.showInterstitial());
+        // Полноэкранная реклама — только в естественной паузе: игрок закрыл окно
+        // «Дерево выросло» (см. takeStageGift). Не после «Целей», «Настроек» и нового сада
+        R.on('saveReloaded', () => {
+            UI.setShownCoins(G.S.coins);
+            R.audio.setEra(G.stageIndex());
+            UI.renderPanel(true);
+        });
 
         // Реклама и пауза платформы: глушим звук и останавливаем игру
         R.on('adOpen', () => { R.audio.pause(); updateGameplay(); });
@@ -483,6 +505,7 @@
         });
 
         document.addEventListener('contextmenu', (e) => e.preventDefault());
+        ['gesturestart', 'gesturechange'].forEach(ev => document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
         document.addEventListener('visibilitychange', onVisibility);
         root.addEventListener('pagehide', () => R.save.flushUrgent());
         root.addEventListener('blur', () => R.audio.pause());
@@ -490,6 +513,30 @@
         root.addEventListener('resize', () => { R.scene.resize(); UI.layout(); });
 
         installActions();
+        watchOtherTabs();
+    }
+
+    function watchOtherTabs() {
+        if (!root.BroadcastChannel) return;
+        let ch;
+        try { ch = new BroadcastChannel('moneytree'); } catch (e) { return; }
+        ch.onmessage = (e) => {
+            if (!e.data || e.data.type !== 'hello' || R.save.disabled) return;
+            R.save.flush();
+            R.save.disabled = true;
+            main.playing = false;
+            R.audio.pause();
+            updateGameplay();
+            UI.celebrate({
+                art: R.icon('tree'),
+                rays: false,
+                title: t('other_tab_title'),
+                text: t('other_tab_text'),
+                buttons: [{ label: t('other_tab_here'), cls: '', action: 'reloadHere' }],
+                noClose: true
+            });
+        };
+        ch.postMessage({ type: 'hello' });
     }
 
     function onVisibility() {
@@ -502,6 +549,8 @@
             // Вернулись после отсутствия — копилка
             if (hiddenAt) {
                 const away = (G.now() - hiddenAt) / 1000;
+                // Короткая отлучка (меньше минуты) — без копилки, но зверята работали в полную силу
+                if (main.playing && away > 0 && away < CFG.offlineMinSec) G.tickIdle(away);
                 const gain = collectAway(away);
                 if (gain > 0 && main.playing) {
                     if (offlineOpen) updateOfflineModal();
@@ -554,12 +603,18 @@
                 rays: false,
                 title: t('garden_confirm_title'),
                 text: t('garden_confirm_text', { n: gain }),
+                // Что останется и что начнётся заново — двумя колонками, без мелкого шрифта
+                extra: `<div class="keep-reset">
+                    <div class="kr keep"><b>${R.icon('check')}${t('garden_keep_title')}</b><ul>${t('garden_keep_list').split('|').map(x => `<li>${x}</li>`).join('')}</ul></div>
+                    <div class="kr reset"><b>${R.icon('up')}${t('garden_reset_title')}</b><ul>${t('garden_reset_list').split('|').map(x => `<li>${x}</li>`).join('')}</ul></div>
+                </div>`,
                 buttons: [
                     { label: t('garden_yes'), cls: 'gold', action: 'prestigeYes' },
                     { label: t('garden_no'), cls: 'white', action: 'close' }
                 ]
             });
         };
+        A.reloadHere = () => location.reload();
         A.prestigeYes = (arg, el, modal) => {
             UI.closeModal(modal);
             G.prestige();
@@ -631,6 +686,9 @@
             R.scene.rewardFx();
             UI.closeModal(modal);
             R.save.flush();
+            // Естественная пауза: дерево выросло, игрок забрал подарок. Не чаще раза
+            // в 3 минуты, не в первые 5 минут игры и не сразу после рекламы за награду
+            setTimeout(() => R.sdk.showInterstitial(), 450);
         };
         A.stageDouble = (arg, el, modal) => {
             adFromModal(modal, () => { }, (ok) => {
@@ -682,8 +740,8 @@
         main.debug = {
             coins: (n) => { G.addCoins(n); },
             level: (n) => { G.S.level = Math.min(G.maxLevel, n); G.S.bestLevel = Math.max(G.S.bestLevel, G.S.level); UI.renderPanel(true); },
-            comet: () => R.scene.scheduleComet(true),
-            reset: () => { localStorage.removeItem('moneytree_v1'); location.reload(); }
+            comet: () => R.scene.cometSoon(),
+            reset: () => { R.save.disabled = true; R.save.storage.remove('moneytree_v1'); location.reload(); }
         };
     }
 

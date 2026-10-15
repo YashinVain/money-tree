@@ -38,13 +38,6 @@
             done: () => G.S.stats.taps >= 6
         },
         {
-            id: 'release',
-            when: () => G.canRelease(),
-            text: () => R.t('hint_release', { m: G.buffMultValue() }),
-            target: el('#btn-rainbow'),
-            hideWhenSheet: true
-        },
-        {
             id: 'upgrade',
             tab: 'tree',
             when: () => G.S.stats.buys === 0 && G.S.coins >= G.treePrice(),
@@ -55,10 +48,17 @@
         {
             id: 'helper',
             tab: 'helpers',
-            when: () => G.S.helpers[0] === 0 && G.S.level >= 3 && G.S.coins >= G.helperPrice(0),
+            when: () => G.S.helpers[0] === 0 && G.S.level >= 3 && G.S.coins >= G.helperPrice(0) && G.S.stats.playMs > 20000,
             text: () => R.t('hint_helper'),
             target: inPanel('helpers', '[data-a="hire:0"]'),
             done: () => G.S.helpers[0] > 0
+        },
+        {
+            id: 'release',
+            when: () => G.canRelease() && (G.S.stats.buys > 0 || G.S.stats.playMs > 40000) && G.S.stats.playMs > 25000,
+            text: () => R.t('hint_release', { m: G.buffMultValue() }),
+            target: el('#btn-rainbow'),
+            hideWhenSheet: true
         },
         {
             id: 'comet',
@@ -66,6 +66,14 @@
             text: () => R.t('hint_comet'),
             target: () => { const p = R.scene.cometPoint(); return p ? { x: p.x, y: p.y, rect: { left: p.x - 40, right: p.x + 40, top: p.top, bottom: p.bottom } } : null; },
             done: () => G.S.stats.comets > 0 || !R.scene.cometVisible()
+        },
+        {
+            id: 'basket',
+            when: () => G.freeChestReady() && G.S.stats.playMs > 60000 && R.scene.basketEnabled,
+            text: () => R.t('hint_basket'),
+            target: () => { const p = R.scene.basketPoint(); return { x: p.x, y: p.y, rect: { left: p.x - 30, right: p.x + 30, top: p.top, bottom: p.bottom } }; },
+            hideWhenSheet: true,
+            done: () => !G.freeChestReady()
         },
         {
             id: 'prestige',
@@ -141,7 +149,8 @@
         const W = root.innerWidth, Hh = root.innerHeight;
         const x = Math.max(10, Math.min(W - bw - 10, tg.x - bw / 2));
         // То, что нельзя закрывать: сама цель, кнопки под пальцем, открытая панель
-        const avoid = [tg.rect, rectOf(document.getElementById('btn-rainbow')), rectOf(document.getElementById('btn-grow'))];
+        const avoid = [tg.rect, rectOf(document.getElementById('btn-rainbow')), rectOf(document.getElementById('btn-grow')),
+            rectOf(document.querySelector('.hud-left')), rectOf(document.querySelector('.hud-right'))];
         const panel = rectOf(document.getElementById('panel'));
         const targetInPanel = panel && tg.y > panel.top && tg.y < panel.bottom && tg.x > panel.left && tg.x < panel.right;
         if (targetInPanel && UI.mode === 'portrait') avoid.push(panel);
@@ -155,7 +164,9 @@
         if (y === undefined) y = Math.max(8, Math.min(Hh - bh - 8, tr.top - bh - 40));
         bubble.style.left = x + 'px';
         bubble.style.top = y + 'px';
-        const hx = tg.rect && tg.rect.right - tg.rect.left < 220 ? tg.x + (tg.rect.right - tg.rect.left) * 0.28 : tg.x;
+        // Узкая цель (вкладка, круглая кнопка) — кончик пальца ровно в центр, иначе он попадает на соседнюю
+        const tw = tg.rect ? tg.rect.right - tg.rect.left : 0;
+        const hx = tw >= 90 && tw < 220 ? tg.x + tw * 0.28 : tg.x;
         hand.style.left = hx + 'px';
         hand.style.top = (tg.y + (tg.rect ? (tg.rect.bottom - tg.rect.top) * 0.18 : 0)) + 'px';
     }

@@ -445,14 +445,14 @@
         const colorsByStage = {
             2: ['#a8ec7a', '#6fcf4f', '#43a843', '#2d6e2d'],
             3: ['#9be86a', '#55c24f', '#2f9a45', '#1f5e2c'],
-            4: ['#b5ef8a', '#62c95a', '#3aa24c', '#215f2e'],
-            5: ['#a8ec7a', '#4cbc4f', '#2c8f42', '#1b552a'],
+            4: ['#ffe6f2', '#ffb3d6', '#f07fb4', '#9a3a6a'],   // цветущее — розовая крона, как сакура
+            5: ['#c4f08a', '#5cc23f', '#2f8a34', '#1b4f22'],   // яблоня — сочная зелень под яблоки
             6: ['#d6c8ff', '#a98bff', '#7a5be0', '#3d2a8a'],
             7: ['#fff1a8', '#ffcf3d', '#e8a020', '#8a5a0a']
         };
         const cc = colorsByStage[s];
         // Пропорции мультяшного дерева: короткий крепкий ствол, большая крона сверху
-        const RR = { 3: 0.37, 4: 0.39, 5: 0.4, 6: 0.41, 7: 0.33 };
+        const RR = { 3: 0.37, 4: 0.39, 5: 0.4, 6: 0.41, 7: 0.35 };
         const Rr = s >= 3 ? RR[s] * h : 0;
         const twoTier = s === 7;
         const cy = s >= 3 ? -h + Rr * (twoTier ? 1.75 : 0.98) : 0;
@@ -461,10 +461,31 @@
         const topW = baseW * 0.62;
         const bend = (rnd() - 0.5) * 8 * k;
 
+        if (s === 7) {
+            // Древо Мира: золотые лучи за кроной — самое величественное дерево сада
+            ctx.save();
+            ctx.translate(0, -h * 0.66);
+            // лучи плавно гаснут к краю, чтобы не упираться в границы картинки
+            const L = h * 0.6;
+            const fade = ctx.createRadialGradient(0, 0, h * 0.1, 0, 0, L);
+            fade.addColorStop(0, 'rgba(255,240,170,0.42)');
+            fade.addColorStop(1, 'rgba(255,240,170,0)');
+            ctx.fillStyle = fade;
+            for (let i = 0; i < 14; i++) {
+                const a = (i / 14) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(a - 0.08) * L, Math.sin(a - 0.08) * L);
+                ctx.lineTo(Math.cos(a + 0.08) * L, Math.sin(a + 0.08) * L);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+        }
         if (s >= 6) {
             // Мягкое сияние вокруг волшебных деревьев
             const gr = ctx.createRadialGradient(0, -h * 0.6, h * 0.05, 0, -h * 0.6, h * 0.75);
-            gr.addColorStop(0, s === 7 ? 'rgba(255,240,160,0.55)' : 'rgba(200,170,255,0.5)');
+            gr.addColorStop(0, s === 7 ? 'rgba(255,236,140,0.7)' : 'rgba(200,170,255,0.5)');
             gr.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = gr;
             P.circle(ctx, 0, -h * 0.6, h * 0.75);
@@ -515,9 +536,9 @@
         if (s >= 6) roots(ctx, baseW, k, s === 6);
         let blobs = dome(rnd, bend, cy, Rr, 9, k, s === 5 ? 1.22 : 1);
         if (twoTier) {
-            // Древо Мира — двухъярусная крона: пышный зелёный низ и золотая макушка
+            // Древо Мира — двухъярусная крона: изумрудный низ и сияющая золотая макушка
             const top = dome(rnd, bend, cy - Rr * 0.82, Rr * 0.72, 7, k);
-            crown(ctx, blobs, ['#b8f08a', '#55c24f', '#2f9a45', '#1f5e2c'], k, s);
+            crown(ctx, blobs, ['#c8f7a8', '#36c27a', '#1c8a55', '#0f4a2e'], k, s);
             crown(ctx, top, cc, k, s + 1);
             blobs = blobs.concat(top);
         } else {
@@ -538,12 +559,14 @@
             spots.push({ x: bend + Math.cos(a) * d, y: cy + Math.sin(a) * d * 0.68 - (twoTier && i % 2 ? Rr * 0.7 : 0) });
         }
         if (s === 4) {
-            const count = Math.round(10 + p * 18);
-            spots.slice(0, count).forEach((pt, i) => blossomFlower(ctx, pt.x, pt.y, (6 + (i % 3)) * k, i % 4 === 0 ? '#ffffff' : '#ff9fd0'));
+            // на розовой кроне — белые и малиновые цветы, с каждым уровнем их больше
+            const count = Math.round(14 + p * 22);
+            spots.slice(0, count).forEach((pt, i) => blossomFlower(ctx, pt.x, pt.y, (6.5 + (i % 3)) * k, i % 3 === 0 ? '#ff5fa2' : '#ffffff'));
         }
         if (s === 5) {
-            const count = Math.round(6 + p * 12);
-            spots.slice(0, count).forEach((pt, i) => apple(ctx, pt.x, pt.y, 9 * k, i % 7 === 3));
+            // крупные красные яблоки (иногда золотое) — их всё больше с ростом
+            const count = Math.round(9 + p * 16);
+            spots.slice(0, count).forEach((pt, i) => apple(ctx, pt.x, pt.y, 11 * k, i % 7 === 3));
             swing(ctx, bend + Rr * 0.62, cy + Rr * 0.55, Math.max(20 * k, -(cy + Rr * 0.55) - 18 * k), k);
         }
         if (s === 6) {
@@ -554,8 +577,8 @@
             lantern(ctx, bend + Rr * 0.76, cy + Rr * 0.58, 7 * k);
         }
         if (twoTier) {
-            const count = Math.round(10 + p * 12);
-            spots.slice(0, count).forEach((pt, i) => (i % 3 === 0 ? apple(ctx, pt.x, pt.y, 9 * k, true) : blossomFlower(ctx, pt.x, pt.y, 7 * k, i % 2 ? '#ffffff' : '#ffb3e0')));
+            const count = Math.round(14 + p * 14);
+            spots.slice(0, count).forEach((pt, i) => (i % 2 === 0 ? apple(ctx, pt.x, pt.y, 10 * k, true) : blossomFlower(ctx, pt.x, pt.y, 7 * k, i % 3 ? '#ffffff' : '#ffe27a')));
             treehouse(ctx, bend + Rr * 0.05, cy + Rr * 0.32, k * 0.9);
             lantern(ctx, bend - Rr * 0.82, cy + Rr * 0.55, 7 * k);
             lantern(ctx, bend + Rr * 0.86, cy + Rr * 0.5, 7 * k);

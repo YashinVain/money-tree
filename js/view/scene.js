@@ -280,7 +280,8 @@
                     state: 'walk', stateT: 1 + Math.random() * 3,
                     hop: 0, hopT: Math.random() * 2, nextCoin: 1 + Math.random() * 2.5,
                     appear: 0, perch: k, jump: null, flap: 0, flapT: 4 + Math.random() * 8,
-                    happy: 0, breathT: 3 + Math.random() * 5
+                    happy: 0, breathT: 3 + Math.random() * 5,
+                    sc: 0.86 + Math.random() * 0.24      // зверята одного вида — немного разного роста
                 });
             }
             for (let k = have.length - 1; k >= need; k--) actors.splice(actors.indexOf(have[k]), 1);
@@ -418,20 +419,26 @@
     const ACTOR_FPS = 20;
     function drawActor(a) {
         const u = uScale();
-        const size = { bee: 30, hedgehog: 38, squirrel: 38, bunny: 38, owl: 42, dragon: 46 }[a.id] * u;
+        // Холст под масштаб с шагом 0.1: пока плавно выезжает панель и масштаб сада
+        // меняется каждый кадр, холст пересоздаётся всего несколько раз, а не каждый кадр
+        const uq = Math.ceil(u * 10) / 10;
+        const size = { bee: 30, hedgehog: 38, squirrel: 38, bunny: 38, owl: 42, dragon: 46 }[a.id] * uq * (a.sc || 1);
         const box = Math.ceil(size * 2.2);
         const px = Math.ceil(box * dpr);
-        if (!a.cv || a.cv.width !== px) {
+        // Холст только растёт: зверёк поменьше рисуется в уже готовый холст побольше
+        if (!a.cv || a.cv.width < px) {
             a.cv = document.createElement('canvas');
             a.cv.width = a.cv.height = px;
             a.cvAt = -1;
         }
+        if (a.cvSize !== size) { a.cvSize = size; a.cvAt = -1; }
+        const cw = a.cv.width, cbox = cw / dpr;
         if (time - a.cvAt >= 1 / ACTOR_FPS || a.cvAt < 0) {
             a.cvAt = time;
             const c = a.cv.getContext('2d');
             c.setTransform(1, 0, 0, 1, 0, 0);
-            c.clearRect(0, 0, px, px);
-            c.setTransform(dpr, 0, 0, dpr, box / 2 * dpr, box / 2 * dpr);
+            c.clearRect(0, 0, cw, cw);
+            c.setTransform(dpr, 0, 0, dpr, cw / 2, cw / 2);
             R.critters.draw(a.id, c, size, time + a.phase, a.n, {
                 moving: a.state === 'walk', hop: a.hop, flap: a.flap ? Math.sin(a.flap * Math.PI * 3) * 0.5 + 0.5 : 0,
                 happy: a.happy, carry: true
@@ -443,7 +450,8 @@
         ctx.translate(a.x, a.y + jumpY);
         const pop = U.easeOutBack(a.appear);
         ctx.scale(a.dir * pop, pop);
-        ctx.drawImage(a.cv, -box / 2, -box / 2, box, box);
+        const shown = cbox * (u / uq);
+        ctx.drawImage(a.cv, -shown / 2, -shown / 2, shown, shown);
         ctx.restore();
     }
 
@@ -464,11 +472,14 @@
         nextCometAt = time + gap / 1000;
     };
 
+    // Для отладки и сценариев проверки: бабочка через полсекунды
+    SC.cometSoon = () => { nextCometAt = time + 0.5; };
+
     function spawnComet() {
         const u = uScale();
         const fromLeft = Math.random() < 0.5;
         comet = {
-            x: fromLeft ? -40 : W + 40,
+            x: fromLeft ? view.x - 40 : view.x + view.w + 40,   // в пределах сада, а не под панелью
             y: view.y + view.h * U.rand(0.25, 0.6),
             dir: fromLeft ? 1 : -1,
             t: 0, life: CFG.cometLife / 1000,
@@ -484,13 +495,14 @@
             if (time >= nextCometAt && nextCometAt > 0 && !SC.paused) spawnComet();
             return;
         }
+        if (SC.paused) return;          // пока открыто окно или реклама — бабочка ждёт
         comet.t += dt;
         comet.x += comet.dir * comet.speed * dt * (0.8 + 0.4 * Math.sin(comet.t * 1.3 + comet.wob));
         comet.y += Math.sin(comet.t * 2.6 + comet.wob) * 40 * dt * uScale();
         if (Math.random() < 0.5) {
             add({ type: 'spark', x: comet.x + U.rand(-8, 8), y: comet.y + U.rand(-8, 8), vx: -comet.dir * 20, vy: 20, life: 0.6, size: U.rand(3, 6) * uScale(), color: '#fff3a0' });
         }
-        if (comet.t > comet.life || comet.x < -80 || comet.x > W + 80) {
+        if (comet.t > comet.life || comet.x < view.x - 80 || comet.x > view.x + view.w + 80) {
             comet = null;
             SC.scheduleComet(false);
         }
@@ -670,7 +682,9 @@
     function basketPos() {
         const u = uScale();
         const r = tree.info ? tree.info.crownR * tree.k : 40;
-        return { x: tree.x + Math.max(56 * u, r * 0.7), y: groundY() + 2 * u, s: 34 * u };
+        // Подальше от ствола: тап по дереву не должен случайно открыть корзинку
+        const x = Math.min(tree.x + Math.max(110 * u, r * 1.05), view.x + view.w - 40 * u);
+        return { x, y: groundY() + 2 * u, s: 34 * u };
     }
     function drawBasket() {
         if (!G.freeChestReady() || !SC.basketEnabled) return;
@@ -773,13 +787,20 @@
     };
 
     // На слабых устройствах плотность пикселей снижается автоматически
-    let maxDpr = 2, slowTime = 0;
+    let maxDpr = 2, slowTime = 0, fastTime = 0, raises = 0;
     function watchQuality(dt) {
         if (dt <= 0 || dt > 0.25) return;
-        slowTime = dt > 0.034 ? slowTime + dt : Math.max(0, slowTime - dt * 0.5);
+        slowTime = dt > 0.045 ? slowTime + dt : Math.max(0, slowTime - dt * 0.5);
+        fastTime = dt < 0.022 ? fastTime + dt : 0;
         if (slowTime > 2.5 && dpr > 1) {
             slowTime = 0;
+            fastTime = 0;
             maxDpr = Math.max(1, dpr - 0.5);
+            SC.resize();
+        } else if (fastTime > 20 && raises < 2 && dpr < Math.min(2, root.devicePixelRatio || 1)) {
+            fastTime = 0;
+            raises++;
+            maxDpr = Math.min(2, dpr + 0.5);
             SC.resize();
         }
     }
@@ -797,6 +818,7 @@
         skyGradKey = '';
         coinFrames = null;
         actors.forEach(a => { a.cv = null; });
+        Object.keys(flowerCache).forEach(k => delete flowerCache[k]);
         makeClouds();
     };
 
@@ -1052,7 +1074,8 @@
 
     const flowerCache = {};
     function flowerSprite(id, size) {
-        const key = id + ':' + Math.round(size) + ':' + dpr;
+        size = Math.ceil(size / 6) * 6;          // ступеньками: кэш не растёт, пока едет панель
+        const key = id + ':' + size + ':' + dpr;
         if (flowerCache[key]) return flowerCache[key];
         const w = size * 1.3, h = size * 1.15;
         const cv = document.createElement('canvas');
@@ -1134,7 +1157,7 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.lineJoin = 'round';
-            ctx.lineWidth = p.size * 0.22;
+            ctx.lineWidth = Math.max(3, p.size * 0.26);   // толстая обводка — «+N» читается и на светлом небе
             ctx.strokeStyle = p.crit ? '#8a4a00' : 'rgba(60,40,20,0.85)';
             ctx.strokeText(p.text, 0, 0);
             ctx.fillStyle = p.color;

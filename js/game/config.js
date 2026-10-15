@@ -14,10 +14,10 @@
             { id: 'sprout', color: '#7ed957', basePrice: 500, priceGrowth: 1.18, tapPerLevel: 7, perk: { chargeSpeed: 0.15 } },
             { id: 'sapling', color: '#4cc96b', basePrice: 12000, priceGrowth: 1.18, tapPerLevel: 50, perk: { buffDuration: 0.25 } },
             { id: 'young', color: '#2fb35a', basePrice: 400000, priceGrowth: 1.18, tapPerLevel: 350, perk: { autoTap: 2 } },
-            { id: 'blossom', color: '#ff8fc8', basePrice: 15000000, priceGrowth: 1.18, tapPerLevel: 2500, perk: { instantCharge: 0.02 } },
-            { id: 'fruit', color: '#ff5a5a', basePrice: 600000000, priceGrowth: 1.18, tapPerLevel: 18000, perk: { autoTap: 3 } },
-            { id: 'magic', color: '#a98bff', basePrice: 25000000000, priceGrowth: 1.18, tapPerLevel: 130000, perk: { critMult: 5 } },
-            { id: 'world', color: '#ffd23f', basePrice: 1100000000000, priceGrowth: 1.18, tapPerLevel: 950000, perk: { globalMult: 1 } }
+            { id: 'blossom', color: '#ff8fc8', basePrice: 4000000, priceGrowth: 1.17, tapPerLevel: 2500, perk: { instantCharge: 0.02 } },
+            { id: 'fruit', color: '#ff5a5a', basePrice: 170000000, priceGrowth: 1.18, tapPerLevel: 18000, perk: { autoTap: 3 } },
+            { id: 'magic', color: '#a98bff', basePrice: 9000000000, priceGrowth: 1.18, tapPerLevel: 130000, perk: { critMult: 5 } },
+            { id: 'world', color: '#ffd23f', basePrice: 400000000000, priceGrowth: 1.18, tapPerLevel: 950000, perk: { globalMult: 1 } }
         ],
 
         // ---- Радуга (шкала заряда) и бафф "Радужный час" ----
@@ -73,7 +73,7 @@
         // ---- Золотая бабочка (редкий бонус, ловится тапом) ----
         cometMinGap: 40000,
         cometMaxGap: 90000,
-        cometFirstDelay: 25000,
+        cometFirstDelay: 70000,      // первая бабочка — через ~минуту, когда игрок освоился
         cometLife: 8000,
         cometRewards: [
             { id: 'stardust', weight: 45 },   // мгновенно: доход за 60 сек
@@ -86,11 +86,11 @@
 
         // ---- Бонусы за рекламу (rewarded video) ----
         ads: {
-            incomeX2: { minutes: 15, maxMinutes: 240 },   // каждый просмотр +15 мин, максимум 4 ч
+            incomeX2: { minutes: 15, maxMinutes: 60 },    // каждый просмотр +15 мин, максимум 1 ч
             shower: { seconds: 60, cooldown: 5 * 60000 },    // радужный дождь на целую минуту
-            chest: { seconds: 600, cooldown: 8 * 60000 }    // доход за 10 минут
+            chest: { seconds: 240, cooldown: 20 * 60000 }   // доход за 4 минуты, раз в 20 минут
         },
-        freeChest: { seconds: 300, cooldown: 3 * 3600000 }, // бесплатная корзинка раз в 3 часа
+        freeChest: { seconds: 300, cooldown: 3 * 3600000, firstDelay: 10 * 60000 }, // раз в 3 часа; новичку — через 10 минут
         interstitialGap: 180000,
 
         // ---- Достижения: каждое +2% к доходу навсегда ----
@@ -98,7 +98,7 @@
 
         // ---- Ежедневные задания и подарок ----
         questsPerDay: 3,
-        questRewardSeconds: 90,
+        questRewardSeconds: 300,     // задание = доход за 5 минут: заметно больше, чем принесли сами тапы
         stageGiftSeconds: 45,        // подарок за новую стадию дерева = доход за 45 сек
         gardenGiftLevels: 10,         // стартовый подарок нового сада: монетки на 10 уровней дерева
         keepBestHelper: 0.5,          // лучший зверёк переезжает в новый сад с половиной уровней (Дневник — со всеми)

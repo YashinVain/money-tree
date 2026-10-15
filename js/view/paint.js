@@ -113,20 +113,33 @@
         ctx.lineWidth = r * 0.08;
         ctx.strokeStyle = 'rgba(184,109,12,0.55)';
         ctx.stroke();
-        // листик-чеканка (денежное дерево!)
+        // листик-чеканка (денежное дерево!): наклонный, с черешком и прожилками —
+        // чтобы читался как листок, а не как вертикальный «глаз»
         if (sx > 0.45) {
-            ctx.fillStyle = 'rgba(184,109,12,0.75)';
+            ctx.save();
+            ctx.rotate(0.6);
+            ctx.fillStyle = 'rgba(184,109,12,0.78)';
             ctx.beginPath();
-            ctx.moveTo(0, -r * 0.42);
-            ctx.quadraticCurveTo(r * 0.38, -r * 0.05, 0, r * 0.42);
-            ctx.quadraticCurveTo(-r * 0.38, -r * 0.05, 0, -r * 0.42);
+            ctx.moveTo(0, -r * 0.46);
+            ctx.quadraticCurveTo(r * 0.46, -r * 0.1, 0, r * 0.3);
+            ctx.quadraticCurveTo(-r * 0.46, -r * 0.1, 0, -r * 0.46);
             ctx.fill();
-            ctx.strokeStyle = '#fff3a0';
-            ctx.lineWidth = r * 0.06;
+            ctx.strokeStyle = 'rgba(184,109,12,0.78)';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = r * 0.09;
             ctx.beginPath();
-            ctx.moveTo(0, -r * 0.32);
-            ctx.lineTo(0, r * 0.34);
+            ctx.moveTo(0, r * 0.26);
+            ctx.lineTo(0, r * 0.5);
             ctx.stroke();
+            ctx.strokeStyle = '#fff3a0';
+            ctx.lineWidth = r * 0.05;
+            ctx.beginPath();
+            ctx.moveTo(0, -r * 0.34);
+            ctx.lineTo(0, r * 0.22);
+            ctx.moveTo(0, -r * 0.06); ctx.lineTo(r * 0.16, -r * 0.2);
+            ctx.moveTo(0, r * 0.08); ctx.lineTo(-r * 0.16, -r * 0.06);
+            ctx.stroke();
+            ctx.restore();
         }
         P.shine(ctx, -r * 0.38, -r * 0.42, r * 0.28, r * 0.14, 0.85);
         ctx.restore();
@@ -153,6 +166,16 @@
         ctx.quadraticCurveTo(r * 0.2, 0, 0, r * 0.75);
         ctx.stroke();
         P.shine(ctx, -r * 0.35, -r * 0.35, r * 0.2, r * 0.42, 0.8, 0.2);
+        // зелёный росток сверху — семечко не спутать с монеткой
+        ctx.fillStyle = '#6fcf4f';
+        ctx.strokeStyle = '#2f7a2f';
+        ctx.lineWidth = r * 0.09;
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 1.05);
+        ctx.quadraticCurveTo(r * 0.75, -r * 1.75, r * 0.95, -r * 1.2);
+        ctx.quadraticCurveTo(r * 0.45, -r * 0.95, 0, -r * 1.05);
+        ctx.fill();
+        ctx.stroke();
         ctx.restore();
     };
 

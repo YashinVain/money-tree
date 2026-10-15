@@ -54,25 +54,36 @@
     UI.layout = () => {
         const w = root.innerWidth, h = root.innerHeight;
         // Телефон боком (568x320 и шире) — тоже горизонтальная раскладка
-        const landscape = w / h > 1.12 && w >= 560;
+        // Широкий экран (компьютер, телефон боком, планшет от 700 px) — панель сбоку
+        const landscape = (w / h > 1.12 && w >= 560) || (w >= 700 && h >= 700);
+        const prevMode = UI.layoutDone ? UI.mode : null;
+        UI.layoutDone = true;
         UI.mode = landscape ? 'landscape' : 'portrait';
         document.body.classList.toggle('landscape', landscape);
         document.body.classList.toggle('portrait', !landscape);
 
         // Масштаб интерфейса: на маленьких телефонах чуть мельче, на больших экранах крупнее
-        const s = landscape ? U.clamp(Math.min(w / 1280, h / 760), 0.8, 1.25) : U.clamp(Math.min(w / 420, h / 820), 0.82, 1.2);
+        // Планшет вертикально (боковая панель, но экран высокий) — масштаб от ширины планшета
+        const s = landscape ? (h > w ? U.clamp(Math.min(w / 760, h / 1000), 0.9, 1.25) : U.clamp(Math.min(w / 1280, h / 760), 0.8, 1.25))
+            : U.clamp(Math.min(w / 420, h / 820), 0.82, 1.2);
         const css = document.documentElement.style;
         css.setProperty('--s', s.toFixed(3));
-        const panelW = Math.round(U.clamp(w * 0.36, Math.min(340, w * 0.45), 480));
+        // Телефон боком (низкий экран) — панель уже, чтобы саду осталось место
+        const panelW = h < 520 ? Math.round(U.clamp(w * 0.4, 220, 300)) : Math.round(U.clamp(w * 0.36, Math.min(340, w * 0.45), 480));
         css.setProperty('--panel-w', panelW + 'px');
         // Вкладке нужно место под значок и подпись: на больших экранах она выше
         const tabbar = h < 520 ? 60 : Math.round(Math.max(66, landscape ? 76 * s : 74 * Math.min(1.1, s)));
         css.setProperty('--tabbar', tabbar + 'px');
         // Панель на телефоне — не выше половины экрана, чтобы дерево оставалось видно
-        css.setProperty('--sheet-h', Math.round(h * 0.5) + 'px');
+        // На низких телефонах (360x640) — ещё ниже, иначе кнопки закрывают дерево
+        css.setProperty('--sheet-h', Math.round(h * (h < 700 ? 0.42 : 0.5)) + 'px');
 
-        if (landscape) UI.sheetOpen = true;
+        // Сбоку панель по умолчанию открыта (её можно свернуть); при повороте
+        // телефона из альбомной в портретную — закрываем, чтобы не закрывала сад
+        if (landscape && prevMode !== 'landscape') UI.sheetOpen = !UI.landCollapsed;
+        if (!landscape && prevMode === 'landscape') UI.sheetOpen = false;
         document.body.classList.toggle('sheet-open', UI.sheetOpen);
+        if (UI.markTab) UI.markTab();
         UI.positionChip();
         UI.updateView();
     };
@@ -84,7 +95,7 @@
         const top = Math.max($('#hud').getBoundingClientRect().bottom, chip.bottom) + 10;
         let rect;
         if (UI.mode === 'landscape') {
-            const pw = $('#panel').offsetWidth + 20;
+            const pw = UI.sheetOpen ? $('#panel').offsetWidth + 20 : 0;
             const controlsH = 104;
             rect = { x: 0, y: top, w: w - pw, h: Math.max(100, h - top - controlsH) };
         } else {
@@ -99,6 +110,7 @@
             rect = { x: 0, y: top, w, h: Math.max(110, bottom - top) };
         }
         const coin = $('#coin-ico').getBoundingClientRect();
+        UI.viewRect = rect;
         R.scene.setView(rect, { x: coin.left + coin.width / 2, y: coin.top + coin.height / 2 });
         // Всплывашки — сразу под надписью стадии, не перекрывают верхнюю панель
         document.documentElement.style.setProperty('--toast-top', Math.round(Math.max(chip.bottom, $('#hud').getBoundingClientRect().bottom) + 6) + 'px');
@@ -113,7 +125,7 @@
         lastHudH = hud.offsetHeight;
         chip.style.top = (hud.getBoundingClientRect().bottom + 4) + 'px';
         if (UI.mode === 'landscape') {
-            const pw = $('#panel').offsetWidth + 20;
+            const pw = UI.sheetOpen ? $('#panel').offsetWidth + 20 : 0;
             chip.style.left = ((root.innerWidth - pw) / 2) + 'px';
         } else {
             chip.style.left = '50%';
@@ -143,13 +155,16 @@
     };
 
     UI.openTab = (id) => {
-        if (UI.mode === 'portrait' && UI.sheetOpen && UI.tab === id) {
+        // Повторный тап по открытой вкладке сворачивает панель (и сбоку тоже)
+        if (UI.sheetOpen && UI.tab === id) {
             UI.closeSheet();
             return;
         }
         UI.tab = id;
         UI.sheetOpen = true;
+        UI.landCollapsed = false;
         document.body.classList.add('sheet-open');
+        document.body.dataset.tab = id;
         lastPanelSig = '';
         UI.renderPanel(true);
         UI.markTab();
@@ -159,7 +174,7 @@
     };
 
     UI.closeSheet = () => {
-        if (UI.mode === 'landscape') return;
+        if (UI.mode === 'landscape') UI.landCollapsed = true;
         UI.sheetOpen = false;
         document.body.classList.remove('sheet-open');
         UI.markTab();
@@ -287,11 +302,22 @@
         UI.hideOffer();
         if (!R.sdk.adsAvailable()) return;
         offerEl = document.createElement('button');
-        offerEl.className = 'offer btn blue';
+        offerEl.className = 'offer btn blue arming';
         offerEl.innerHTML = `<i class="ico">${R.icon('video')}</i>${html}<i class="offer-bar"></i>`;
         offerEl.style.setProperty('--offer-ms', ms + 'ms');
-        offerEl.addEventListener('click', () => { const fn = onAccept; UI.hideOffer(); fn(); });
-        $('#offers').appendChild(offerEl);
+        offerEl.addEventListener('click', () => {
+            if (!offerEl || offerEl.classList.contains('arming')) return;
+            const fn = onAccept; UI.hideOffer(); fn();
+        });
+        const el = offerEl;
+        setTimeout(() => el.classList.remove('arming'), 1000);
+        // под верхней панелью, по центру сада
+        const v = UI.viewRect || { x: 0, y: 80, w: root.innerWidth };
+        el.style.left = (v.x + v.w / 2) + 'px';
+        // всплывашка о награде появляется у верхнего края сада — предложение встаёт под ней
+        const toastsAside = UI.mode === 'landscape' && root.innerHeight < 520 && UI.sheetOpen;
+        el.style.top = (v.y + (toastsAside ? 6 : 74)) + 'px';
+        $('#app').appendChild(el);
         offerTimer = setTimeout(UI.hideOffer, ms);
     };
     UI.hideOffer = () => {
@@ -337,9 +363,15 @@
         if (!dot && count) el.textContent = count > 9 ? '9+' : count;
     }
 
+    const badgeSeen = {};
     UI.updateBadges = () => {
         const b = R.panels.badges();
-        document.querySelectorAll('.tab').forEach(t => setBadge(t.querySelector('.badge'), b[t.dataset.tab], true));
+        // Повод уже видели (вкладка была открыта) — точку не показываем, пока не появится новый
+        if (UI.sheetOpen && b[UI.tab]) badgeSeen[UI.tab] = b[UI.tab];
+        document.querySelectorAll('.tab').forEach(t => {
+            const v = b[t.dataset.tab];
+            setBadge(t.querySelector('.badge'), v && v !== badgeSeen[t.dataset.tab] ? 1 : 0, true);
+        });
         setBadge($('#btn-goals .badge'), b.goals, false);
     };
 

@@ -77,6 +77,9 @@
             setBtn(el.querySelector('[data-k="growBtn"]'), G.S.coins >= price);
             const plan = G.treeMaxPlan();
             txt(el.querySelector('[data-k="maxLabel"]'), t('tree_grow_max', { n: Math.max(1, plan.count) }));
+            // «Макс ×1» — то же, что «Вырастить»: прячем, пока по карману меньше двух уровней
+            const maxBtn = el.querySelector('[data-k="maxBtn"]');
+            if (maxBtn) maxBtn.style.display = plan.count >= 2 ? '' : 'none';
             setHtml(el.querySelector('[data-k="maxPrice"]'), UI.price(plan.count ? plan.price : price));
             setBtn(el.querySelector('[data-k="maxBtn"]'), plan.count > 1);
         }
@@ -119,7 +122,7 @@
             return head + cards;
         },
         patch: (el) => {
-            txt(el.querySelector('[data-k="total"]'), t('helpers_total', { n: U.fmt(G.passiveBase() * G.globalMult()) }));
+            txt(el.querySelector('[data-k="total"]'), G.passiveBase() > 0 ? t('helpers_total', { n: U.fmt(G.passiveBase() * G.globalMult()) }) : t('helpers_none'));
             CFG.helpers.forEach((h, i) => {
                 if (!G.helperRevealed(i)) return;
                 const btn = el.querySelector(`[data-k="hire${i}"]`);
@@ -157,14 +160,29 @@
     };
 
     // ---------- Новый сад ----------
-    const PERK_ICONS = { can: 'can', fertilizer: 'fertilizer', bed: 'bed', net: 'net', diary: 'diary', basket: 'basket' };
+    const PERK_ICONS = { can: 'can', fertilizer: 'fertilizer', bed: 'bed', net: 'net', diary: 'diary', basket: 'piggy' };
 
     // Сколько уровней Лейки можно будет купить на семена после посадки
     function canLevelsAfter(gain) {
-        let seeds = G.S.seeds + gain, lvl = G.perkLevel('can'), n = 0;
-        const p = G.perkCfg('can');
-        while (seeds >= p.basePrice + p.priceStep * lvl) { seeds -= p.basePrice + p.priceStep * lvl; lvl++; n++; }
-        return lvl;
+        // Цены растут на одно и то же число: сумма n цен — арифметическая прогрессия,
+        // поэтому n находим по формуле (цикл на поздних числах вешал вкладку)
+        const S = G.S.seeds + gain, lvl = G.perkLevel('can');
+        const p = G.perkCfg('can'), b = p.basePrice, s = p.priceStep;
+        const cost = (n) => n * b + s * (n * lvl + n * (n - 1) / 2);
+        let n;
+        if (s <= 0) n = Math.floor(S / b);
+        else {
+            const B = b + s * lvl - s / 2;
+            const D = B * B + 2 * s * S;
+            // на астрономических числах дискриминант переполняется — берём приближение
+            n = isFinite(D) ? Math.floor((-B + Math.sqrt(D)) / s) : Math.floor(Math.sqrt(2 * S / s));
+        }
+        n = Math.max(0, n);
+        if (isFinite(n) && n < 1e15) {
+            while (n > 0 && cost(n) > S) n--;
+            while (cost(n + 1) <= S) n++;
+        }
+        return lvl + n;
     }
 
     PN.garden = {
@@ -176,7 +194,7 @@
             if (!G.canPrestige()) {
                 top = `<div class="card"><div class="row">
                     <div class="pic">${R.icon('lock')}</div>
-                    <div class="grow"><div class="title">${t('garden_locked', { n: CFG.prestigeLevel })}</div>
+                    <div class="grow"><div class="title">${t('garden_locked', { n: CFG.prestigeLevel, name: t('stage_' + CFG.stages[G.stageIndex(CFG.prestigeLevel)].id) })}</div>
                     <div class="bar"><i style="width:${Math.min(1, G.S.level / CFG.prestigeLevel) * 100}%"></i><span>${G.S.level} / ${CFG.prestigeLevel}</span></div></div>
                 </div></div>`;
             } else {
@@ -243,7 +261,7 @@
     };
 
     PN.giftTomorrow = () => {
-        const tomorrowDay = M.giftAvailable() ? (M.giftStreakDay() % 7) + 1 : (M.giftStreakDay() % 7) + 1;
+        const tomorrowDay = Math.min(M.giftStreakDay() + 1, 7);
         const seeds = M.giftSeeds(tomorrowDay);
         return t('gift_tomorrow', { n: U.fmt(M.giftAmount(tomorrowDay)) + (seeds ? ' + ' + t('gift_seeds', { n: seeds }) : '') });
     };
@@ -306,18 +324,21 @@
         // Дерево: хватает на новую стадию (или самое начало игры)
         const plan = G.treeMaxPlan();
         const toStageEnd = G.isMaxed() ? 0 : CFG.levelsPerStage - G.subLevel();
-        b.tree = !G.isMaxed() && ((plan.count > 0 && plan.count >= toStageEnd) || (G.S.level < 3 && G.S.coins >= G.treePrice())) ? 1 : 0;
+        b.tree = !G.isMaxed() && ((plan.count > 0 && plan.count >= toStageEnd) || (G.S.level < 3 && G.S.coins >= G.treePrice())) ? 'st' + G.stageIndex() + ':' + (G.S.level < 3 ? G.S.level : '') : 0;
         // Зверята: можно позвать нового зверька или дойти до вехи x2
-        b.helpers = CFG.helpers.some((h, i) => {
-            if (!G.helperRevealed(i)) return false;
-            if (G.S.helpers[i] === 0) return G.S.coins >= G.helperPrice(i);
+        const reasons = CFG.helpers.map((h, i) => {
+            if (!G.helperRevealed(i)) return '';
+            if (G.S.helpers[i] === 0) return G.S.coins >= G.helperPrice(i) ? 'n' + i : '';
             const ms = G.nextMilestone(G.S.helpers[i]);
-            return ms && G.S.coins >= G.helperBulkPrice(i, ms - G.S.helpers[i]);
-        }) ? 1 : 0;
+            return ms && G.S.coins >= G.helperBulkPrice(i, ms - G.S.helpers[i]) ? i + 'm' + ms : '';
+        }).filter(Boolean);
+        b.helpers = reasons.length ? reasons.join(',') : 0;
         // Новый сад: посадка заметно выгодна или есть на что потратить семена
-        b.garden = (G.canPrestige() && G.seedsOnPrestige() >= Math.max(5, Math.ceil(G.S.seedsLife * 0.5))) ||
-            CFG.perks.some(p => !G.perkMaxed(p.id) && G.S.seeds >= G.perkPrice(p.id)) ? 1 : 0;
-        b.bonus = G.S.stats.playMs > 120000 && (M.giftAvailable() || G.freeChestReady()) ? 1 : 0;
+        const prestigeNow = G.canPrestige() && G.seedsOnPrestige() >= Math.max(5, Math.ceil(G.S.seedsLife * 0.5));
+        const perk = CFG.perks.find(p => !G.perkMaxed(p.id) && G.S.seeds >= G.perkPrice(p.id));
+        b.garden = prestigeNow || perk ? (prestigeNow ? 'p' + G.S.prestiges : '') + (perk ? perk.id + G.perkLevel(perk.id) : '') : 0;
+        b.bonus = G.S.stats.playMs > 120000 && (M.giftAvailable() || G.freeChestReady())
+            ? (M.giftAvailable() ? 'g' + G.S.gift.lastDay : '') + (G.freeChestReady() ? 'c' + G.S.freeChestAt : '') : 0;
         b.flowers = 0;
         b.goals = M.claimableCount();
         return b;
@@ -353,9 +374,7 @@
                 ${G.S.daily.bonusClaimed ? `<div class="pic check-pic">${R.icon('check')}</div>`
                     : `<button class="btn col ${allDone ? 'gold' : 'off'}" data-a="claimBonus">${t('quest_claim')}</button>`}
             </div></div>`;
-            const tomorrow = new Date(G.now());
-            tomorrow.setHours(24, 0, 0, 0);
-            body = `<div class="note">${t('quests_refresh', { t: U.fmtTime(tomorrow - G.now()) })}</div>` + qs + bonusCard;
+            body = `<div class="note">${t('quests_refresh', { t: '<b class="q-timer">' + U.fmtTime(msToMidnight()) + '</b>' })}</div>` + qs + bonusCard;
         } else {
             const all = M.allAchievements();
             const got = all.filter(a => G.S.ach[a.id]).length;
@@ -370,7 +389,7 @@
                     <div class="pic ico-pic">${iconOrPic(g.icon)}</div>
                     <div class="grow"><div class="title" style="font-size:16px">${t('ach_' + g.id)} <span class="stars">${stars}</span></div>
                     <div class="desc">${t('ach_' + g.id + '_desc', { n: fmtT })}</div>
-                    <div class="bar gold"><i style="width:${Math.min(1, val / target) * 100}%"></i></div></div>
+                    <div class="bar gold"><i style="width:${Math.min(1, val / target) * 100}%"></i><span>${g.id === 'earn' ? U.fmt(Math.min(val, target)) : U.fmtInt(Math.min(val, target))} / ${fmtT}</span></div></div>
                 </div></div>`;
             });
         }
@@ -388,10 +407,24 @@
         return R.icon(ICON_ALIAS[icon] || icon);
     }
 
+    // Задания обновляются в полночь по времени игрока
+    function msToMidnight() {
+        const d = new Date(G.now());
+        d.setHours(24, 0, 0, 0);
+        return Math.max(0, d - G.now());
+    }
+
     let goalsModal = null;
+    // Раз в секунду, даже пока окно открыто: идёт таймер, а в полночь сразу появляются новые задания
+    PN.tickGoals = () => {
+        if (!goalsModal) return;
+        if (M.ensureDaily()) { PN.refreshGoals(); return; }
+        const el = goalsModal.el.querySelector('.q-timer');
+        if (el) el.textContent = U.fmtTime(msToMidnight());
+    };
     PN.openGoals = () => {
         R.audio.open();
-        goalsModal = UI.modal({ html: goalsHtml(), onClose: () => { goalsModal = null; R.emit('neutralPause'); } });
+        goalsModal = UI.modal({ html: goalsHtml(), onClose: () => { goalsModal = null; } });
     };
     PN.refreshGoals = () => {
         if (!goalsModal) return;
@@ -447,7 +480,7 @@
     let settingsModal = null;
     PN.openSettings = () => {
         R.audio.open();
-        settingsModal = UI.modal({ html: settingsHtml(), onClose: () => { settingsModal = null; R.emit('neutralPause'); } });
+        settingsModal = UI.modal({ html: settingsHtml(), onClose: () => { settingsModal = null; } });
     };
     PN.refreshSettings = () => {
         if (settingsModal) settingsModal.el.querySelector('.modal').innerHTML = settingsHtml();
