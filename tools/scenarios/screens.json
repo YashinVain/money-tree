@@ -14,11 +14,11 @@
    "wait": 1500
   },
   {
-   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=68; s.bestLevel=68; s.coins=3000000; s.helpers=[30,25,18,8,0,0]; s.charge=22; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "js": "R.save.disabled=true; R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=68; s.bestLevel=68; s.coins=3000000; s.helpers=[30,25,18,8,0,0]; s.charge=22; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
    "sleep": 1500
   },
   {
-   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click();",
+   "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click();",
    "sleep": 2500
   },
   {
@@ -41,11 +41,11 @@
    "wait": 1500
   },
   {
-   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=84; s.bestLevel=84; s.coins=400000000; s.helpers=[45,38,30,24,10,0]; s.charge=30; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "js": "R.save.disabled=true; R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=84; s.bestLevel=84; s.coins=2500000000; s.helpers=[45,38,30,24,10,0]; s.charge=30; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
    "sleep": 1500
   },
   {
-   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>{ R.game.release(); }, 800);",
+   "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>{ R.game.release(); }, 800);",
    "sleep": 3200
   },
   {
@@ -60,11 +60,11 @@
    "wait": 1500
   },
   {
-   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=98; s.bestLevel=98; s.coins=30000000000; s.helpers=[55,48,40,32,25,8]; s.charge=12; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "js": "R.save.disabled=true; R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=98; s.bestLevel=98; s.coins=30000000000; s.helpers=[55,48,40,32,25,8]; s.charge=12; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
    "sleep": 1500
   },
   {
-   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=helpers]').click(), 900);",
+   "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=helpers]').click(), 900);",
    "sleep": 3000
   },
   {
@@ -75,11 +75,11 @@
    "wait": 1500
   },
   {
-   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=116; s.bestLevel=116; s.coins=50000000000000; s.helpers=[70,60,52,45,38,26]; s.charge=26; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "js": "R.save.disabled=true; R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=116; s.bestLevel=116; s.coins=50000000000000; s.helpers=[70,60,52,45,38,26]; s.charge=26; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
    "sleep": 1500
   },
   {
-   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=flowers]').click(), 900);",
+   "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=flowers]').click(), 900);",
    "sleep": 3000
   },
   {
@@ -98,11 +98,11 @@
    "wait": 1500
   },
   {
-   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=68; s.bestLevel=68; s.coins=3000000; s.helpers=[30,25,18,8,0,0]; s.charge=22; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "js": "R.save.disabled=true; R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=68; s.bestLevel=68; s.coins=3000000; s.helpers=[30,25,18,8,0,0]; s.charge=22; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
    "sleep": 1500
   },
   {
-   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click();",
+   "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click();",
    "sleep": 2500
   },
   {
@@ -125,11 +125,11 @@
    "wait": 1500
   },
   {
-   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=84; s.bestLevel=84; s.coins=400000000; s.helpers=[45,38,30,24,10,0]; s.charge=30; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "js": "R.save.disabled=true; R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=84; s.bestLevel=84; s.coins=2500000000; s.helpers=[45,38,30,24,10,0]; s.charge=30; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
    "sleep": 1500
   },
   {
-   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>{ R.game.release(); }, 800);",
+   "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>{ R.game.release(); }, 800);",
    "sleep": 3200
   },
   {
@@ -144,11 +144,11 @@
    "wait": 1500
   },
   {
-   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=98; s.bestLevel=98; s.coins=30000000000; s.helpers=[55,48,40,32,25,8]; s.charge=12; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "js": "R.save.disabled=true; R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=98; s.bestLevel=98; s.coins=30000000000; s.helpers=[55,48,40,32,25,8]; s.charge=12; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
    "sleep": 1500
   },
   {
-   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=helpers]').click(), 900);",
+   "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=helpers]').click(), 900);",
    "sleep": 3000
   },
   {
@@ -159,11 +159,11 @@
    "wait": 1500
   },
   {
-   "js": "R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=116; s.bestLevel=116; s.coins=50000000000000; s.helpers=[70,60,52,45,38,26]; s.charge=26; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "js": "R.save.disabled=true; R.save.flush=()=>{}; R.save.update=()=>{}; localStorage.clear(); const s=R.game.newState(); s.level=116; s.bestLevel=116; s.coins=50000000000000; s.helpers=[70,60,52,45,38,26]; s.charge=26; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000; localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
    "sleep": 1500
   },
   {
-   "js": "R.ui.toast=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=flowers]').click(), 900);",
+   "js": "R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=flowers]').click(), 900);",
    "sleep": 3000
   },
   {
