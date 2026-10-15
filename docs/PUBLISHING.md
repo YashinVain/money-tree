@@ -13,7 +13,8 @@ node tools/build.js
 ```
 
 Первая команда проверяет логику игры (должно быть «0 упало»), вторая создаёт
-`dist/money-tree.zip` (~80 КБ): внутри `index.html` в корне, `game.js` и `css/style.css`.
+`dist/money-tree.zip` (~170 КБ): внутри `index.html` в корне, `game.js`, `css/style.css`
+и шрифт Nunito в `fonts/` (с лицензией OFL — свободный шрифт, его можно распространять с игрой).
 Имена без пробелов и кириллицы — как требует пункт 1.22.
 
 ## 2. Проверить с SDK Яндекса у себя на компьютере (по желанию)
@@ -57,7 +58,7 @@ sdk-dev-proxy -p dist/money-tree --dev-mode=true
 
 Зови в сад зверят: пчёлку, ёжика, белочку, кролика, сову и маленького дракончика.
 Они живут в саду и сами приносят монетки — даже когда ты не в игре.
-Наполняй радугу тапами и включай Радужный час, лови золотых бабочек с сюрпризами,
+Наполняй радугу тапами и включай радужный дождь, лови золотых бабочек с сюрпризами,
 собирай коллекцию волшебных цветов и сажай новые сады, которые растут ещё быстрее.
 
 Спокойная и добрая игра на пару минут, к которой приятно возвращаться каждый день:
@@ -68,7 +69,7 @@ sdk-dev-proxy -p dist/money-tree --dev-mode=true
 даёт больше монеток за тап, а новая стадия меняет вид дерева. В разделе «Зверята» зови
 помощников: они приносят монетки каждую секунду. Когда радуга над деревом наполнится, нажми
 «Радуга!» — монеток станет вдвое больше. Лови золотую бабочку, если она пролетает мимо.
-Когда дерево зацветёт, можно посадить новый сад и получить золотые семена для вечных бонусов.
+Когда вырастет Яблоня, можно посадить новый сад и получить золотые семена для вечных бонусов.
 На компьютере: пробел — тап по дереву, R или Enter — радуга.
 
 **Теги/ключевые слова:** кликер, idle, дерево, сад, монеты, зверята, животные, для детей,
@@ -92,7 +93,7 @@ in its branches.
 
 Invite animal friends to your garden: a bee, a hedgehog, a squirrel, a bunny, an owl
 and a little dragon. They live in the garden and bring coins on their own — even when you
-are away. Fill the rainbow with taps and start the Rainbow Hour, catch golden butterflies
+are away. Fill the rainbow with taps and start the Rainbow Shower, catch golden butterflies
 with surprises, collect magic flowers and plant new gardens that grow even faster.
 
 A calm and kind game for a couple of minutes that is fun to come back to every day:
@@ -102,8 +103,8 @@ daily gifts, quests, achievements and a piggy bank that fills up while you are a
 Tap the tree to collect coins. In “Tree”, grow it — each level gives more coins per tap,
 and a new stage changes how the tree looks. In “Animals”, invite helpers: they bring coins
 every second. When the rainbow above the tree is full, press “Rainbow!” for double coins.
-Catch the golden butterfly when it flies by. When the tree blossoms, you can plant a new
-garden and get golden seeds for eternal bonuses.
+Catch the golden butterfly when it flies by. When the Apple tree grows, you can plant a new
+garden and get golden seeds for permanent bonuses.
 On a computer: Space — tap the tree, R or Enter — rainbow.
 
 **Tags:** clicker, idle, tree, garden, coins, animals, kids, relaxing, casual
