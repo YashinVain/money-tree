@@ -241,7 +241,7 @@
         const wait = Math.max(0, 3500 - (Date.now() - lastCloudCall));
         // Срочная отправка (уход со страницы) — сразу, но не чаще раза в 10 с:
         // частое сворачивание не должно упереться в лимит Яндекса
-        if (wait === 0 || (flush && Date.now() - lastCloudCall > 10000)) {
+        if (wait === 0 || flush === 'final' || (flush && Date.now() - lastCloudCall > 10000)) {
             if (cloudTimer) { clearTimeout(cloudTimer); cloudTimer = null; }
             send();
         } else if (!cloudTimer) cloudTimer = setTimeout(send, wait);
@@ -263,7 +263,7 @@
 
     let lastScore = -1, lastScoreAt = 0;
     SDK.setScore = (score) => {
-        if (!SDK.ysdk || !SDK.ysdk.leaderboards || !SDK.isAuthorized()) return;
+        if (!SDK.ysdk || !SDK.ysdk.leaderboards || !SDK.isAuthorized() || !SDK.lbReady) return;
         score = Math.floor(score);
         if (score === lastScore || Date.now() - lastScoreAt < 2000) return;
         lastScore = score;

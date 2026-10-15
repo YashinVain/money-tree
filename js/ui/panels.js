@@ -278,7 +278,7 @@
                 ${PN.giftCalendar()}
                 ${M.giftAvailable()
                     ? `<button class="btn big wide gold" data-a="gift"><span>${t('gift_take')}</span>&nbsp;<span data-k="giftAmt"></span>${seeds ? '&nbsp;+&nbsp;' + UI.price(seeds, true) : ''}</button>`
-                    : `<div class="desc" style="text-align:center;margin-top:6px">${t('gift_taken')}</div>`}
+                    : ''}
                 <div class="desc" style="text-align:center;margin-top:6px" data-k="giftTomorrow"></div>
             </div>`;
             const chest = `<div class="card ${G.freeChestReady() ? 'hl' : ''}"><div class="row">
@@ -357,13 +357,13 @@
                 const done = q.progress >= q.target;
                 const target = q.type === 'earn' ? U.fmt(q.target) : q.target;
                 const prog = q.type === 'earn' ? U.fmt(q.progress) : Math.floor(q.progress);
-                return `<div class="card ${q.claimed ? 'done' : (done ? 'hl' : '')}"><div class="row">
+                // полоска прогресса — на всю ширину карточки, чтобы числа не обрезались
+                return `<div class="card quest ${q.claimed ? 'done' : (done ? 'hl' : '')}"><div class="row">
                     <div class="pic ico-pic">${iconOrPic(M.questTypes[q.type].icon)}</div>
-                    <div class="grow"><div class="title" style="font-size:16px">${t('quest_' + q.type, { n: q.type === 'earn' ? target : q.target })}</div>
-                    <div class="bar"><i style="width:${q.progress / q.target * 100}%"></i><span>${prog} / ${target}</span></div></div>
+                    <div class="grow"><div class="title" style="font-size:16px">${t('quest_' + q.type, { n: q.type === 'earn' ? target : q.target })}</div></div>
                     ${q.claimed ? `<div class="pic check-pic">${R.icon('check')}</div>`
                         : `<button class="btn col ${done ? 'gold' : 'off'}" data-a="claimQuest:${i}"><span>${t('quest_claim')}</span><small>${UI.price(M.questReward())}</small></button>`}
-                </div></div>`;
+                </div><div class="bar wide"><i style="width:${Math.min(1, q.progress / q.target) * 100}%"></i><span>${prog} / ${target}</span></div></div>`;
             }).join('');
             const bonus = M.dailyBonusInfo();
             const allDone = M.allQuestsClaimed();
@@ -388,7 +388,7 @@
                 body += `<div class="card ${next === undefined ? 'done' : ''}"><div class="row">
                     <div class="pic ico-pic">${iconOrPic(g.icon)}</div>
                     <div class="grow"><div class="title" style="font-size:16px">${t('ach_' + g.id)} <span class="stars">${stars}</span></div>
-                    <div class="desc">${t('ach_' + g.id + '_desc', { n: fmtT })}</div>
+                    <div class="desc">${t('ach_' + g.id + '_desc', { n: fmtT, c: target })}</div>
                     <div class="bar gold"><i style="width:${Math.min(1, val / target) * 100}%"></i><span>${g.id === 'earn' ? U.fmt(Math.min(val, target)) : U.fmtInt(Math.min(val, target))} / ${fmtT}</span></div></div>
                 </div></div>`;
             });

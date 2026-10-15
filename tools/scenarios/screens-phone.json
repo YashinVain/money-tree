@@ -1,0 +1,83 @@
+{
+ "out": "../../docs/promo",
+ "steps": [
+  {
+   "size": [
+    640,
+    360,
+    3,
+    true
+   ]
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.disabled=true; localStorage.clear(); const s=R.game.newState(); s.level=68; s.bestLevel=68; s.coins=30000000; s.helpers=[30,25,18,8,0,0]; s.charge=30; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000;  localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.save.disabled=true; R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; R.ui.offer=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab.active').click(),700);",
+   "sleep": 2600
+  },
+  {
+   "js": "window.tapN=(n)=>{for(let i=0;i<n;i++){const p=R.scene.treePoint();document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x+(Math.random()-0.5)*60,clientY:p.y+(Math.random()-0.5)*50,bubbles:true}));}};tapN(3);",
+   "sleep": 160
+  },
+  {
+   "js": "tapN(2);",
+   "sleep": 160,
+   "shot": "phone-1.png"
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.disabled=true; localStorage.clear(); const s=R.game.newState(); s.level=84; s.bestLevel=84; s.coins=2500000000; s.helpers=[45,38,30,24,10,0]; s.charge=30; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000;  localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.save.disabled=true; R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; R.ui.offer=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>R.game.release(),800);",
+   "sleep": 2600
+  },
+  {
+   "js": "window.tapN=(n)=>{for(let i=0;i<n;i++){const p=R.scene.treePoint();document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x+(Math.random()-0.5)*60,clientY:p.y+(Math.random()-0.5)*50,bubbles:true}));}};tapN(3);",
+   "sleep": 180,
+   "shot": "phone-2.png"
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.disabled=true; localStorage.clear(); const s=R.game.newState(); s.level=98; s.bestLevel=98; s.coins=30000000000; s.helpers=[55,48,40,32,26,12]; s.charge=30; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000;  localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.save.disabled=true; R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; R.ui.offer=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab[data-tab=helpers]').click(),900);",
+   "sleep": 2600
+  },
+  {
+   "shot": "phone-3.png"
+  },
+  {
+   "open": "http://127.0.0.1:8934/index.html",
+   "wait": 1500
+  },
+  {
+   "js": "R.save.disabled=true; localStorage.clear(); const s=R.game.newState(); s.level=116; s.bestLevel=116; s.coins=5000000000000; s.helpers=[70,60,52,45,40,30]; s.charge=30; s.hints={tap:1,upgrade:1,upgrade_buy:1,helper:1,release:1,comet:1,goals:1,gift:1,prestige:1,basket:1}; s.stats.playMs=1e6; s.stats.taps=5000; s.savedAt=Date.now(); s.gift={lastDay:R.util.dayKey(Date.now()),streak:3}; s.freeChestAt=Date.now()+3600000;  localStorage.setItem('moneytree_v1', JSON.stringify(s)); location.reload();",
+   "sleep": 1500
+  },
+  {
+   "js": "R.save.disabled=true; R.ui.toast=()=>{}; R.ui.toastLow=()=>{}; R.ui.offer=()=>{}; document.getElementById('btn-play').click(); setTimeout(()=>document.querySelector('.tab.active').click(),700);",
+   "sleep": 2600
+  },
+  {
+   "js": "window.tapN=(n)=>{for(let i=0;i<n;i++){const p=R.scene.treePoint();document.getElementById('scene').dispatchEvent(new PointerEvent('pointerdown',{clientX:p.x+(Math.random()-0.5)*60,clientY:p.y+(Math.random()-0.5)*50,bubbles:true}));}};tapN(4);",
+   "sleep": 180,
+   "shot": "phone-4.png"
+  }
+ ]
+}

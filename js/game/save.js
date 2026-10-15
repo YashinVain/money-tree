@@ -35,6 +35,7 @@
         // (достижения, бонусы, подсказки, статистика) — все ключи
         const merge = (target, src, top) => {
             Object.keys(src).forEach(k => {
+                if (k === '__proto__' || k === 'constructor' || k === 'prototype') return;
                 const v = src[k];
                 if (top && !(k in target)) return;
                 if (v && typeof v === 'object' && !Array.isArray(v) && target[k] && typeof target[k] === 'object' && !Array.isArray(target[k])) {
@@ -64,6 +65,11 @@
             d.quests.forEach(q => { q.progress = Math.max(0, +q.progress || 0); q.target = +q.target; q.claimed = !!q.claimed; });
             d.bonusClaimed = !!d.bonusClaimed;
         }
+        // Дата из будущего (часы устройства были переведены вперёд) — иначе подарок
+        // и задания «замёрзли» бы до этой даты
+        const today = R.util.dayKey(G.now());
+        if (fresh.gift.lastDay > today) fresh.gift.lastDay = '';
+        if (fresh.daily && fresh.daily.day > today) fresh.daily = null;
         if (typeof fresh.playerId !== 'string') fresh.playerId = '';
         fresh.playerAuthed = fresh.playerAuthed === true;
         // Любое число из сохранения проверяем: не число или меньше нуля — ставим 0
@@ -179,7 +185,7 @@
     SV.reloadAfterAuth = async () => {
         const current = JSON.parse(JSON.stringify(G.S));
         const cloud = await R.sdk.loadCloud();
-        if (!cloud.ok) return false;
+        if (!cloud.ok) { SV.retryCloud(); return false; }
         SV.choose(current, cloud.data);
         G.S.playerId = R.sdk.playerId();
         G.S.playerAuthed = R.sdk.isAuthorized();
@@ -200,9 +206,9 @@
             SV.storage.set(KEY, SV.serialize());
             lastLocal = now;
             dirty = false;
-            if (force === 'urgent' || now - lastCloud > CLOUD_GAP) {
+            if (force === 'final' || force === 'urgent' || now - lastCloud > CLOUD_GAP) {
                 lastCloud = now;
-                R.sdk.saveCloud(G.S, force === 'urgent');
+                R.sdk.saveCloud(G.S, force === 'final' ? 'final' : force === 'urgent');
             } else if (force) {
                 R.sdk.saveCloud(G.S, false);   // важное событие: уйдёт с ближайшей разрешённой отправкой
             }
@@ -219,5 +225,11 @@
     SV.flushUrgent = () => {
         dirty = true;
         SV.update('urgent');
+    };
+
+    // Страница закрывается: отложенная отправка уже не успеет — шлём в облако немедленно
+    SV.flushFinal = () => {
+        dirty = true;
+        SV.update('final');
     };
 })(typeof window !== 'undefined' ? window : globalThis);

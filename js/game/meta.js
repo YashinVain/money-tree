@@ -51,7 +51,7 @@
         buys: { icon: 'up', make: () => U.pick([10, 20, 30]) },
         comets: { icon: 'butterfly', make: () => U.pick([1, 2]) },
         helpers: { icon: 'helpers', make: () => U.pick([10, 15, 25]) },
-        earn: { icon: 'coin', make: () => Math.max(2000, Math.round(G.secondsOfIncome(600) / 100) * 100) }
+        earn: { icon: 'coin', make: () => Math.max(20000, Math.round(G.secondsOfIncome(600) / 100) * 100) }
     };
 
     M.ensureDaily = () => {
@@ -81,7 +81,10 @@
         });
     };
 
-    M.questReward = () => G.secondsOfIncome(CFG.questRewardSeconds);
+    // Награды привязаны к цене дерева: задание — примерно 3 уровня, подарок дня —
+    // от 3 уровней (1-й день) до 9 (7-й день). Так новичок не перескакивает целые стадии
+    const levelsWorth = (n) => (G.isMaxed() ? Infinity : G.treePrice() * n);
+    M.questReward = () => Math.min(G.secondsOfIncome(CFG.questRewardSeconds), levelsWorth(3));
 
     M.claimQuest = (index) => {
         const q = G.S.daily && G.S.daily.quests[index];
@@ -98,7 +101,7 @@
     // Бонус за все 3 задания: золотое семечко (если уже был новый сад) или много монет
     M.dailyBonusInfo = () => (G.S.prestiges > 0
         ? { kind: 'seed', amount: 1 }
-        : { kind: 'coins', amount: G.secondsOfIncome(600) });
+        : { kind: 'coins', amount: Math.min(G.secondsOfIncome(600), levelsWorth(5)) });
 
     M.claimDailyBonus = () => {
         if (!M.allQuestsClaimed() || G.S.daily.bonusClaimed) return null;
@@ -134,7 +137,15 @@
         return keepsStreak(gap) ? Math.min(g.streak + 1, 7) : 1;
     };
 
-    M.giftAmount = (day = M.giftStreakDay()) => G.secondsOfIncome(CFG.dailyGiftSeconds[day - 1]);
+    // Сумма подарка «фиксируется» на 10 минут: пока окно открыто, она не растёт у игрока на глазах
+    let giftQuote = null;
+    M.giftAmount = (day = M.giftStreakDay()) => {
+        const now = G.now();
+        if (giftQuote && giftQuote.day === day && now - giftQuote.at < 600000) return giftQuote.amount;
+        const amount = Math.min(G.secondsOfIncome(CFG.dailyGiftSeconds[day - 1]), levelsWorth(2 + day));
+        giftQuote = { day, amount, at: now };
+        return amount;
+    };
     M.giftSeeds = (day = M.giftStreakDay()) => (day === 7 ? CFG.giftDay7Seeds : 0);
 
     M.claimGift = () => {

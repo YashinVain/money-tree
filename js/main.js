@@ -120,7 +120,7 @@
     }
 
     function startPlaying() {
-        if (main.playing) return;
+        if (main.playing || main.otherTab) return;
         R.audio.unlock();
         R.audio.click();
         $('#title').classList.add('gone');
@@ -281,6 +281,7 @@
     }
 
     function doTap(x, y) {
+        UI.lastTreeTap = performance.now();
         const res = G.tap('player');
         R.scene.tapFx(res, x, y);
         R.audio.tap(res.crit);
@@ -507,7 +508,7 @@
         document.addEventListener('contextmenu', (e) => e.preventDefault());
         ['gesturestart', 'gesturechange'].forEach(ev => document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
         document.addEventListener('visibilitychange', onVisibility);
-        root.addEventListener('pagehide', () => R.save.flushUrgent());
+        root.addEventListener('pagehide', () => R.save.flushFinal());
         root.addEventListener('blur', () => R.audio.pause());
         root.addEventListener('focus', () => { if (!document.hidden && !R.sdk.adOpen && !main.paused) R.audio.resume(); });
         root.addEventListener('resize', () => { R.scene.resize(); UI.layout(); });
@@ -524,7 +525,11 @@
             if (!e.data || e.data.type !== 'hello' || R.save.disabled) return;
             R.save.flush();
             R.save.disabled = true;
+            main.otherTab = true;
             main.playing = false;
+            // заставка не должна закрывать это окно, а «Играть» здесь больше не запускает игру
+            $('#title').classList.add('hidden');
+            document.body.classList.remove('on-title');
             R.audio.pause();
             updateGameplay();
             UI.celebrate({
@@ -602,11 +607,11 @@
                 art: UI.seedImg(),
                 rays: false,
                 title: t('garden_confirm_title'),
-                text: t('garden_confirm_text', { n: gain }),
+                text: t('garden_confirm_text', { n: U.fmt(gain), c: gain }),
                 // Что останется и что начнётся заново — двумя колонками, без мелкого шрифта
                 extra: `<div class="keep-reset">
+                    <div class="kr reset"><b>${R.icon('garden')}${t('garden_reset_title')}</b><ul>${t('garden_reset_list').split('|').map(x => `<li>${x}</li>`).join('')}</ul></div>
                     <div class="kr keep"><b>${R.icon('check')}${t('garden_keep_title')}</b><ul>${t('garden_keep_list').split('|').map(x => `<li>${x}</li>`).join('')}</ul></div>
-                    <div class="kr reset"><b>${R.icon('up')}${t('garden_reset_title')}</b><ul>${t('garden_reset_list').split('|').map(x => `<li>${x}</li>`).join('')}</ul></div>
                 </div>`,
                 buttons: [
                     { label: t('garden_yes'), cls: 'gold', action: 'prestigeYes' },
@@ -688,7 +693,7 @@
             R.save.flush();
             // Естественная пауза: дерево выросло, игрок забрал подарок. Не чаще раза
             // в 3 минуты, не в первые 5 минут игры и не сразу после рекламы за награду
-            setTimeout(() => R.sdk.showInterstitial(), 450);
+            setTimeout(() => { if (!UI.hasModal() && !celebrating) R.sdk.showInterstitial(); }, 450);
         };
         A.stageDouble = (arg, el, modal) => {
             adFromModal(modal, () => { }, (ok) => {

@@ -682,7 +682,8 @@
         const side = i % 2 === 0 ? -1 : 1;
         const slot = Math.floor(i / 2);
         const base = Math.max(70 * u, (tree.info ? tree.info.crownR * tree.k * 0.55 : 40));
-        return { x: tree.x + side * (base + slot * 46 * u), y: groundY() - 4 * u + (slot % 2) * 10 * u };
+        const x = U.clamp(tree.x + side * (base + slot * 46 * u), view.x + 26 * u, view.x + view.w - 26 * u);
+        return { x, y: groundY() - 4 * u + (slot % 2) * 10 * u };
     }
 
     // ---------- Готовые картинки монетки ----------
@@ -1215,12 +1216,12 @@
         drawRainbow();
         if (frontCanvas) ctx.drawImage(frontCanvas, 0, groundY() - hillsRef, W, H * 1.6);
         drawAnimatedDecor();
-        drawBasket();
         // Дракончик летает за деревом
         actors.filter(a => a.id === 'dragon').forEach(drawActor);
         drawFlowers();
         drawTree();
         actors.filter(a => a.id !== 'dragon').sort((a, b) => a.y - b.y).forEach(drawActor);
+        drawBasket();          // корзинку не загораживают зверята — по ней нужно тапать
         drawParts();
         if (comet) {
             const flap = comet.t * 4;

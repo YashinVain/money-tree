@@ -169,6 +169,7 @@
         UI.renderPanel(true);
         UI.markTab();
         UI.updateView();
+        UI.positionChip();
         R.audio.open();
         R.emit('tabOpen', id);
     };
@@ -179,6 +180,7 @@
         document.body.classList.remove('sheet-open');
         UI.markTab();
         UI.updateView();
+        UI.positionChip();
         R.emit('sheetClose');
     };
 
@@ -265,6 +267,12 @@
         if (!toastBusy) nextToast();
     };
     function nextToast() {
+        // верх всплывашки — сразу под надписью стадии и верхней панелью, как они выглядят сейчас
+        const chipEl = $('#stage-chip'), hudEl = $('#hud');
+        if (chipEl && hudEl) {
+            const cb = chipEl.offsetParent ? chipEl.getBoundingClientRect().bottom : 0;
+            document.documentElement.style.setProperty('--toast-top', Math.round(Math.max(cb, hudEl.getBoundingClientRect().bottom) + 6) + 'px');
+        }
         const item = toastQueue.shift();
         if (!item) { toastBusy = false; return; }
         toastBusy = true;
@@ -290,7 +298,7 @@
     };
     setInterval(() => {
         if (!lowQueue.length || toastBusy || UI.hasModal()) return;
-        if (G.S.stats.playMs < 40000 || Date.now() - lastLow < 8000) return;
+        if (G.S.stats.playMs < 150000 || Date.now() - lastLow < 12000) return;
         lastLow = Date.now();
         const item = lowQueue.shift();
         UI.toast(item[0], item[1], item[2], item[3]);
@@ -310,14 +318,28 @@
             const fn = onAccept; UI.hideOffer(); fn();
         });
         const el = offerEl;
-        setTimeout(() => el.classList.remove('arming'), 1000);
-        // под верхней панелью, по центру сада
-        const v = UI.viewRect || { x: 0, y: 80, w: root.innerWidth };
+        const born = performance.now();
+        // Нажать можно только через секунду после появления и через 1,2 с после
+        // последнего тапа по дереву — частые тапы ребёнка не запустят ролик
+        const arm = setInterval(() => {
+            if (!el.isConnected) { clearInterval(arm); return; }
+            const now = performance.now();
+            if (now - born > 1000 && now - (UI.lastTreeTap || 0) > 1200) { el.classList.remove('arming'); clearInterval(arm); }
+        }, 100);
+        const v = UI.viewRect || { x: 0, y: 80, w: root.innerWidth, h: 300 };
         el.style.left = (v.x + v.w / 2) + 'px';
-        // всплывашка о награде появляется у верхнего края сада — предложение встаёт под ней
-        const toastsAside = UI.mode === 'landscape' && root.innerHeight < 520 && UI.sheetOpen;
-        el.style.top = (v.y + (toastsAside ? 6 : 74)) + 'px';
         $('#app').appendChild(el);
+        // Место: под всплывашкой вверху сада, но не на кроне дерева (там тапают);
+        // если сад низкий и крона высоко — над кнопками внизу
+        const h = el.offsetHeight || 44;
+        const toastsAside = UI.mode === 'landscape' && root.innerHeight < 520 && UI.sheetOpen;
+        const tp = R.scene.treePoint();
+        const crownTop = tp.top - 10;
+        const candidates = [v.y + (toastsAside ? 6 : 74), v.y + 6];
+        const controls = $('#controls').getBoundingClientRect();
+        let top = candidates.find(y => y + h < crownTop);
+        if (top === undefined) top = controls.top - h - 8;
+        el.style.top = Math.max(v.y, top) + 'px';
         offerTimer = setTimeout(UI.hideOffer, ms);
     };
     UI.hideOffer = () => {

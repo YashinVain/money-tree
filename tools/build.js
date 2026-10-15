@@ -35,18 +35,24 @@ html = html.slice(0, firstTag) + `<script src="game.js?v=${version}"></script>` 
 html = html.replace(/\s*<!-- Порядок важен:[^>]*-->/, '');
 html = html.replace('href="css/style.css"', `href="css/style.css?v=${version}"`);
 
+// ---------- 2б. Без комментариев: в архив идёт чистый код (исходники не меняются) ----------
+const STRIP = require('./strip.js');
+const cleanBundle = STRIP.stripJs(bundle);
+const cleanHtml = STRIP.stripHtml(html);
+const cleanCss = STRIP.stripCss(read('css/style.css'));
+
 // ---------- 3. Папка сборки ----------
 fs.rmSync(path.join(ROOT, 'dist'), { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, 'css'), { recursive: true });
-fs.writeFileSync(path.join(OUT, 'index.html'), html);
-fs.writeFileSync(path.join(OUT, 'game.js'), bundle);
-fs.copyFileSync(path.join(ROOT, 'css', 'style.css'), path.join(OUT, 'css', 'style.css'));
+fs.writeFileSync(path.join(OUT, 'index.html'), cleanHtml);
+fs.writeFileSync(path.join(OUT, 'game.js'), cleanBundle);
+fs.writeFileSync(path.join(OUT, 'css', 'style.css'), cleanCss);
 // Шрифт Nunito и его лицензия
 fs.mkdirSync(path.join(OUT, 'fonts'), { recursive: true });
 fs.readdirSync(path.join(ROOT, 'fonts')).forEach(f => fs.copyFileSync(path.join(ROOT, 'fonts', f), path.join(OUT, 'fonts', f)));
 
-// Проверка синтаксиса склеенного файла
-new Function(bundle);
+// Проверка синтаксиса склеенного и очищенного файла
+new Function(cleanBundle);
 
 // ---------- 4. ZIP ----------
 const CRC_TABLE = (() => {

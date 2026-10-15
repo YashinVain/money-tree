@@ -842,3 +842,26 @@ svg { display: block; width: 100%; height: 100%; }
 @media (max-height: 520px) {
     .landscape.sheet-open #toasts { left: auto; right: 14px; transform: none; width: calc(var(--panel-w, 300px) - 8px); top: calc(var(--tabbar) + 16px); }
 }
+
+/* Раунд 4 */
+.bar.wide { margin-top: 8px; }
+.card.quest .row { align-items: center; }
+/* Кнопки в карточках («Смотреть», «Открыть») — не ниже 44 px */
+.card .btn { min-height: 44px; }
+/* Телефон боком: без второго заголовка в панели (сворачивается тапом по вкладке), текст не мельче 13 px */
+@media (max-height: 520px) {
+    .landscape .panel-head { display: none; }
+    .landscape #panel .panel-body { font-size: max(13px, 1em); }
+    .landscape #panel .desc, .landscape #panel small, .landscape #panel .sub { font-size: 13px; }
+    .landscape #panel .row > .grow.desc { display: none; }
+    /* узкая панель: кнопка «Улучшить» встаёт под именем зверька, а не сжимает его */
+    .landscape #panel .card > .row { flex-wrap: wrap; }
+    .landscape #panel .card > .row > .btn { flex: 1 1 100%; }
+}
+/* Низкие экраны (360x640): компактная шапка зверят и подтверждение нового сада без картинки */
+@media (max-height: 700px) {
+    .portrait #panel .panel-body > div:has(> [data-k="total"]) > .desc { display: none; }
+    .modal-hero .keep-reset { margin-top: 6px; }
+    .modal:has(.keep-reset) .modal-hero .art, .modal:has(.keep-reset) .rays { display: none; }
+    .keep-reset .kr { font-size: 13px; padding: 7px 9px; }
+}

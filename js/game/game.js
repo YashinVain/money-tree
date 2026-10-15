@@ -471,6 +471,7 @@
         const total = list.reduce((s, r) => s + r.weight, 0);
         let roll = Math.random() * total, reward = list[0];
         for (const r of list) { roll -= r.weight; if (roll <= 0) { reward = r; break; } }
+        if (reward.id === 'overcharge' && G.canRelease()) reward = list.find(r => r.id === 'stardust') || reward;
 
         const result = { id: reward.id, amount: 0 };
         if (reward.id === 'stardust') {

@@ -87,7 +87,7 @@
         {
             id: 'gift',
             tab: 'bonus',
-            when: () => G.S.stats.playMs > 50000 && R.meta.giftAvailable(),
+            when: () => G.S.stats.playMs > 150000 && R.meta.giftAvailable(),
             text: () => R.t('hint_gift'),
             target: tabEl('bonus'),
             hideWhenSheet: true,
