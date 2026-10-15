@@ -19,11 +19,14 @@ const os = require('os');
 
 const ROOT = path.join(__dirname, '..');
 const GAME = process.env.GAME_URL || 'http://127.0.0.1:8934/index.html';
-const W = 1920, H = 1080, FPS = 30;
+// --vertical: ролик 9:16 для телефона (раскладка телефона 360×640, кадры 1080×1920)
+const VERTICAL = process.argv.includes('--vertical');
+const W = VERTICAL ? 1080 : 1920, H = VERTICAL ? 1920 : 1080, FPS = 30;
+const VIEW = VERTICAL ? { width: 360, height: 640, deviceScaleFactor: 3, mobile: true } : { width: W, height: H, deviceScaleFactor: 1, mobile: false };
 const MP4 = require('./mp4.js');
 // Язык ролика: node tools/record.js --lang en  (по умолчанию русский)
 const LANG = (process.argv.find(a => a.startsWith('--lang=')) || '').slice(7) || (process.argv.includes('--lang') ? process.argv[process.argv.indexOf('--lang') + 1] : 'ru');
-const OUT = path.join(ROOT, 'docs', 'promo', `gameplay-${LANG}-1920x1080.mp4`);
+const OUT = path.join(ROOT, 'docs', 'promo', VERTICAL ? `gameplay-vertical-${LANG}-1080x1920.mp4` : `gameplay-${LANG}-1920x1080.mp4`);
 const FRAMES = path.join(ROOT, 'dist', 'video-frames');   // dist/ не попадает в git
 
 const EDGE = [
@@ -113,13 +116,13 @@ async function main() {
     try {
         const list = await getJson(`http://127.0.0.1:${port}/json/list`);
         const game = await connect(list.find(t => t.type === 'page').webSocketDebuggerUrl);
-        await game.send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
+        await game.send('Emulation.setDeviceMetricsOverride', VIEW);
         await game.send('Page.navigate', { url: GAME });
         await sleep(1500);
         await game.eval(PREPARE());
         await sleep(1800);
         await game.eval(START);
-        await game.eval(PLAYER.CURSOR);
+        await game.eval(PLAYER.cursor(VERTICAL ? 'touch' : 'mouse'));
         await sleep(1200);
 
         // 1. Запись кадров
@@ -131,7 +134,7 @@ async function main() {
             game.send('Page.screencastFrameAck', { sessionId: p.sessionId }).catch(() => { });
         });
         await game.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: W, maxHeight: H, everyNthFrame: 1 });
-        await PLAYER.play(game, sleep).catch(e => console.log('  сценарий:', e.message.split('\n')[0]));
+        await PLAYER.play(game, sleep, 25000, { touch: VERTICAL, vw: VIEW.width, vh: VIEW.height }).catch(e => console.log('  сценарий:', e.message.split('\n')[0]));
         await game.send('Page.stopScreencast');
         await sleep(300);
         const dur = frames.length ? frames[frames.length - 1].t - frames[0].t : 0;
@@ -172,7 +175,7 @@ async function main() {
                 let pick = src;
                 while (pick + 1 < list.length && list[pick + 1].t <= k / FPS) pick++;
                 if (pick !== src) { shown.close(); shown = await load(list[pick]); src = pick; }
-                c.drawImage(shown, 0, 0);
+                c.drawImage(shown, 0, 0, ${W}, ${H});
                 const frame = new VideoFrame(cv, { timestamp: Math.round(k * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
                 encoder.encode(frame, { keyFrame: k % (FPS * 2) === 0 });
                 frame.close();

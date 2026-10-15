@@ -3,6 +3,19 @@
 // у человека), плавные движения руки по дуге, неровный ритм тапов. Курсор и «круги»
 // от нажатий рисует сама страница поверх игры — в игре их нет.
 
+// mouse — стрелка мыши (видео для компьютера); touch — только касания пальца (телефон)
+const cursor = (mode) => (mode === 'touch' ? TOUCH : CURSOR);
+const TOUCH = `
+    window.addEventListener('mousedown', (e) => {
+        const r = document.createElement('div');
+        Object.assign(r.style, { position: 'fixed', left: e.clientX - 22 + 'px', top: e.clientY - 22 + 'px', width: '44px', height: '44px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.45)', border: '2px solid rgba(255,255,255,0.85)', boxShadow: '0 0 8px rgba(0,0,0,0.25)', zIndex: 99998, pointerEvents: 'none',
+            transition: 'transform 0.3s ease-out, opacity 0.3s ease-out', transform: 'scale(1)', opacity: '1' });
+        document.body.appendChild(r);
+        setTimeout(() => { r.style.transform = 'scale(1.35)'; r.style.opacity = '0'; }, 90);
+        setTimeout(() => r.remove(), 420);
+    }, true);
+`;
 const CURSOR = `
     const cur = document.createElement('div');
     cur.id = 'rec-cursor';
@@ -22,10 +35,11 @@ const CURSOR = `
     window.addEventListener('mouseup', () => { cur.style.transform = 'scale(1)'; }, true);
 `;
 
-async function play(game, sleep, limitMs = 25000) {
+async function play(game, sleep, limitMs = 25000, opts = {}) {
     const t0 = Date.now();
     const left = () => limitMs - (Date.now() - t0);
-    let pos = { x: 1780, y: 980 };
+    const touch = !!opts.touch;
+    let pos = touch ? { x: opts.vw * 0.8, y: opts.vh * 0.85 } : { x: 1780, y: 980 };
     const rnd = (a, b) => a + Math.random() * (b - a);
     const send = (type, x, y) => game.send('Input.dispatchMouseEvent', {
         type, x: Math.round(x), y: Math.round(y),
@@ -37,7 +51,8 @@ async function play(game, sleep, limitMs = 25000) {
     // Плавное движение по дуге, как рукой: быстрее на коротких расстояниях
     async function move(x, y, ms) {
         const dist = Math.hypot(x - pos.x, y - pos.y);
-        ms = ms || Math.min(650, 200 + dist * 0.35);
+        // палец на телефоне «прыгает» быстро — его движения не видно, только касания
+        ms = ms || (touch ? Math.min(220, 90 + dist * 0.4) : Math.min(650, 200 + dist * 0.35));
         const from = { ...pos }, steps = Math.max(5, Math.round(ms / 16));
         const bend = rnd(-0.12, 0.12) * dist;
         const nx = -(y - from.y), ny = x - from.x, nl = Math.hypot(nx, ny) || 1;
@@ -55,6 +70,8 @@ async function play(game, sleep, limitMs = 25000) {
     }
     const rect = (sel) => game.eval(`const e = document.querySelector(${JSON.stringify(sel)});
         if (!e || !e.offsetParent) return null; const r = e.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        if (!hit || !(hit === e || e.contains(hit))) return null;   // спрятан за краем панели — вслепую не жмём
         return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };`);
     const tree = () => game.eval('const p = R.scene.treePoint(); return { x: p.x, y: p.y, r: (p.bottom - p.top) / 2 };');
     async function clickOn(sel, wait) {
@@ -80,7 +97,7 @@ async function play(game, sleep, limitMs = 25000) {
     }
 
     // ---------- Сам ролик (~25 с) ----------
-    await move(1150, 620, 500);                          // рука заходит в кадр
+    if (!touch) await move(1150, 620, 500);              // рука заходит в кадр
     await tapTree(10);                                   // тапы — летят монетки
     await sleep(250);
     await clickOn('#btn-grow', 520);                     // растим дерево
@@ -110,13 +127,14 @@ async function play(game, sleep, limitMs = 25000) {
     await sleep(700);
     // Зовём зверят
     await clickOn('.tab[data-tab=helpers]', 700);
-    await clickOn('[data-a="hire:3"]', 420);
-    await clickOn('[data-a="hire:4"]', 520);
+    // на телефоне в нижней панели видны верхние карточки — зовём пчёлку и ёжика
+    await clickOn(touch ? '[data-a="hire:0"]' : '[data-a="hire:3"]', 420);
+    await clickOn(touch ? '[data-a="hire:1"]' : '[data-a="hire:4"]', 520);
     await clickOn('.tab.active', 500);                   // панель свернули — сад целиком
     await tapTree(8);
-    await move(pos.x + 120, pos.y + 160, 400);           // рука отходит, любуемся садом
+    if (!touch) await move(pos.x + 120, pos.y + 160, 400);   // рука отходит, любуемся садом
     await sleep(Math.max(300, Math.min(1000, left())));
     console.log('  сценарий: ' + ((Date.now() - t0) / 1000).toFixed(1) + ' с');
 }
 
-module.exports = { CURSOR, play };
+module.exports = { CURSOR, cursor, play };
