@@ -170,12 +170,6 @@
         };
         layer(gy - 70 * u, 70 * u, 0.006 / u, 1.3, pal[2], -0.05);
         layer(gy - 25 * u, 55 * u, 0.009 / u, 4.1, pal[3], -0.1);
-        // Дальние украшения (мельница, домик, замок) — на холмах, за радугой
-        R.decor.unlocked(G.S.bestLevel).forEach(d => {
-            if (R.decor.animated[d.id] || d.depth < 2) return;
-            const pos = decorPos(d, gy, u);
-            R.decor.draw(c, d.id, pos.x, pos.y, pos.k, 0);
-        });
         // Дальше рисуем луг — в отдельный холст, он будет перед радугой
         const back = c;
         frontCanvas = frontCanvas || document.createElement('canvas');
@@ -228,27 +222,68 @@
                 c.fill();
             }
         }
-        // Ближние неподвижные украшения — на лугу, перед радугой
-        R.decor.unlocked(G.S.bestLevel).forEach(d => {
-            if (R.decor.animated[d.id] || d.depth >= 2) return;
-            const pos = decorPos(d, gy, u);
-            R.decor.draw(c, d.id, pos.x, pos.y, pos.k, 0);
-        });
+        // Все украшения стоят на самом лугу (а не на дальних холмах — там они казались
+        // парящими в воздухе). Дальние — выше по лугу и мельче, ближние — ниже и крупнее;
+        // рисуем от дальних к ближним, чтобы ближние перекрывали дальние
+        visibleDecor = pickDecor(gy, u);
+        visibleDecor
+            .filter(d => !R.decor.animated[d.id])
+            .sort((a, b) => b.depth - a.depth)
+            .forEach(d => {
+                const pos = decorPos(d, gy, u);
+                R.decor.draw(c, d.id, pos.x, pos.y, pos.k, 0);
+            });
         H = Hb;
     }
 
-    // Где стоит украшение: depth 0 — на лугу, 1 — ближний холм, 2 — дальний, 3 — в небе
+    // Какие украшения поместятся: у каждого своё место, и если на узком экране два
+    // наезжают друг на друга — показываем более позднее (оно эффектнее), а раннее прячем.
+    // Так сад не превращается в свалку даже на маленьком телефоне
+    const DECOR_W = { mushrooms: 50, stones: 56, fence: 84, birdhouse: 34, pond: 84, windmill: 60, cottage: 62, lanterns: 44, arch: 58, fountain: 66, castle: 78 };
+    let visibleDecor = [];
+    function pickDecor(gy, u) {
+        const placed = [];
+        R.decor.unlocked(G.S.bestLevel).slice().sort((a, b) => b.lvl - a.lvl).forEach(d => {
+            if (d.depth >= 3) { placed.push(d); return; }
+            const pos = decorPos(d, gy, u);
+            const w = (DECOR_W[d.id] || 60) * pos.k;
+            // не загораживаем ствол дерева
+            if (Math.abs(pos.x - tree.x) < w / 2 + 34 * u) return;
+            const clash = placed.some(p => p.depth < 3 && Math.abs(p._x - pos.x) < (p._w + w) / 2 * 0.95);
+            if (!clash) { d._x = pos.x; d._w = w; placed.push(d); }
+        });
+        return placed;
+    }
+
+    // Верхний край луга (та же кривая, что рисуется в drawHills) относительно линии земли gy
+    function meadowTop(x, u) {
+        const cx = tree.x;
+        const seg = x < cx
+            ? [0, 18, cx - W * 0.35, -6, cx - W * 0.2, -22, cx, -22]
+            : [cx, -22, cx + W * 0.2, -22, cx + W * 0.35, -6, W, 18];
+        const bz = (t, a, b, c2, d2) => { const m = 1 - t; return m * m * m * a + 3 * m * m * t * b + 3 * m * t * t * c2 + t * t * t * d2; };
+        let lo = 0, hi = 1;
+        for (let i = 0; i < 18; i++) {
+            const mid = (lo + hi) / 2;
+            if (bz(mid, seg[0], seg[2], seg[4], seg[6]) < x) lo = mid; else hi = mid;
+        }
+        return bz((lo + hi) / 2, seg[1], seg[3], seg[5], seg[7]) * u;
+    }
+
+    // Где стоит украшение: depth 0 — у самого края луга (ближе к нам), 1 — середина,
+    // 2 — дальний край луга, 3 — волшебный летающий остров в небе
     function decorPos(d, gy, u) {
-        const scale = [1.3, 1.05, 0.8, 0.85][d.depth];
-        const yOff = [14, -10, -46, -150][d.depth];
         const x = U.clamp(tree.x + d.dx * view.w * 1.05, view.x + 44 * u, view.x + view.w - 44 * u);
-        return { x, y: gy + yOff * u, k: scale * u };
+        if (d.depth >= 3) return { x, y: gy - 150 * u, k: 0.85 * u };
+        const scale = [1.2, 1.0, 0.84][d.depth];
+        const inMeadow = [26, 15, 7][d.depth];
+        return { x, y: gy + meadowTop(x, u) + inMeadow * u, k: scale * u };
     }
 
     // Анимированные украшения (мельница, фонтан, остров) — каждый кадр
     function drawAnimatedDecor() {
         const gy = groundY(), u = hillsU;
-        R.decor.unlocked(G.S.bestLevel).forEach(d => {
+        visibleDecor.forEach(d => {
             if (!R.decor.animated[d.id]) return;
             const pos = decorPos(d, gy, u);
             R.decor.draw(ctx, d.id, pos.x, pos.y, pos.k, time);
